@@ -199,6 +199,7 @@
       <button type="button" id="el-front" class="icon-btn" data-action="el-front" aria-label="Trazer para frente" title="Trazer para frente (Ctrl+])" disabled><svg class="icon" aria-hidden="true"><use href="#i-front"/></svg></button>
       <button type="button" id="el-back" class="icon-btn" data-action="el-back" aria-label="Enviar para trás" title="Enviar para trás (Ctrl+[)" disabled><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg></button>
       <button type="button" id="el-edit" class="icon-btn" data-action="el-edit" aria-label="Editar texto do elemento" title="Editar texto (Enter ou duplo clique)" disabled><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+      <button type="button" id="el-colors" class="icon-btn" data-action="el-colors" aria-label="Cores do elemento" title="Cores (fundo, borda, texto)" disabled><svg class="icon" aria-hidden="true"><use href="#i-palette"/></svg></button>
       <button type="button" id="el-props" class="icon-btn only-narrow" data-action="el-props" aria-label="Propriedades do elemento" aria-expanded="false" aria-controls="inspector" title="Propriedades" disabled><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg></button>
       <button type="button" id="el-delete" class="icon-btn" data-action="el-delete" aria-label="Excluir elemento" title="Excluir (Delete)" disabled><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
     </div>
@@ -255,6 +256,22 @@
           <label for="insp-checked" id="insp-checked-label">Marcado</label>
         </div>
       </div>
+      <section id="insp-colors" class="insp-colors" aria-labelledby="colors-title" hidden>
+        <h3 id="colors-title" class="insp-sub">Cores</h3>
+        <fieldset class="seg" id="color-targets">
+          <legend class="visually-hidden">Aplicar a cor em</legend>
+          <label class="seg-opt" id="seg-fill"><input type="radio" name="color-target" value="fill" checked><span class="seg-top"><span class="seg-chip is-default" id="chip-fill"></span>Fundo</span><span class="seg-val" id="val-fill">padrão</span></label>
+          <label class="seg-opt" id="seg-stroke"><input type="radio" name="color-target" value="stroke"><span class="seg-top"><span class="seg-chip is-default" id="chip-stroke"></span>Borda</span><span class="seg-val" id="val-stroke">padrão</span></label>
+          <label class="seg-opt" id="seg-color"><input type="radio" name="color-target" value="color"><span class="seg-top"><span class="seg-chip is-default" id="chip-color"></span>Texto</span><span class="seg-val" id="val-color">automático</span></label>
+        </fieldset>
+        <div id="swatches" class="swatches"></div>
+        <div class="color-custom">
+          <label for="color-custom">Cor personalizada</label>
+          <input type="color" id="color-custom" value="#FFFFFF">
+          <button type="button" class="btn btn-secondary" id="color-reset">Remover cor</button>
+        </div>
+        <p id="color-info" class="color-info" role="status" aria-live="polite" hidden></p>
+      </section>
     </aside>
   </main>
 

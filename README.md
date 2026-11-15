@@ -32,6 +32,7 @@ O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estrut
 - **Edição completa:** arrastar, redimensionar pelas 8 alças, duplicar, excluir, trazer para frente / enviar para trás, editar texto com duplo clique (ou duplo toque), seleção múltipla (`Shift`/`Ctrl`+clique).
 - **11 componentes de baixa fidelidade:** Container/Card, Botão, Campo de input, Cabeçalho/Navbar, Menu hambúrguer, Imagem placeholder (caixa com X), Bloco de texto, Lista, Toggle, Checkbox e Divisor. Clique para inserir ou arraste (mouse) para a prancheta.
 - **Painel de propriedades:** texto, posição (X/Y), tamanho e estado (ligado/marcado) do elemento selecionado.
+- **Ferramenta de cores:** troque o **fundo**, a **borda/linhas** e o **texto** de qualquer elemento (ou de vários de uma vez), com paleta dos 4 temas + neutras, seletor de cor livre e aviso de contraste WCAG. [Detalhes](#cores-dos-elementos)
 - **Desfazer / Refazer** com histórico de até 100 passos, **persistido** junto com o projeto.
 - **Autosave** em IndexedDB: nada se perde ao fechar a aba.
 - **Exportação:** projeto completo em `.json`, **PNG** (tela atual ou folha com todas as telas) via `<canvas>` nativo e **impressão** limpa de todas as telas (`@media print`).
@@ -49,6 +50,18 @@ O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estrut
 3. Arraste para mover, use as alças para redimensionar, toque duas vezes para editar o texto.
 4. Use as abas para criar outras telas.
 5. Tudo é salvo automaticamente. Use **Exportar** para gerar arquivos.
+
+### Cores dos elementos
+
+Selecione um ou mais elementos e abra **Cores** (ícone de paleta na barra, ou a seção *Cores* do painel de propriedades; no celular, a folha inferior).
+
+1. Escolha onde aplicar: **Fundo**, **Borda** (bordas, linhas e ícones) ou **Texto**.
+2. Toque em uma cor da paleta — **Neutras**, **Original**, **Sóbrio**, **Hawaii** ou **Groenlândia** — ou use a **Cor personalizada** (qualquer `#RRGGBB`).
+3. **Fundo padrão / Borda padrão / Texto automático** remove a cor e volta ao visual de rascunho.
+
+**Texto automático e contraste:** ao escolher um fundo, o texto passa sozinho para **preto** (fundos claros) ou **branco** (fundos escuros), sempre o de maior contraste. Se você definir manualmente uma cor de texto, o painel mostra a taxa de contraste texto/fundo com nível (**AAA ✓**, **AA ✓**, **só para texto grande ⚠**, **abaixo do mínimo WCAG ✗**) — sempre com texto e símbolo, nunca só cor.
+
+As cores entram em **tudo**: PNG, impressão, `.json`, backup, copiar/colar, duplicar e desfazer/refazer (aplicar uma cor a vários elementos é um único passo de histórico). Cores inválidas em arquivos importados são descartadas.
 
 ### Menu (☰)
 
@@ -176,7 +189,8 @@ Ao publicar uma nova versão dos arquivos, **incremente `CACHE_VERSION` em `sw.j
       "name": "Home",
       "elements": [
         { "id": "uuid", "type": "button", "x": 40, "y": 120, "w": 140, "h": 44,
-          "text": "Entrar", "checked": false }
+          "text": "Entrar", "checked": false,
+          "fill": "#29243C", "stroke": "", "color": "" }   // cores: "#RRGGBB" ou "" (padrão)
       ]
     }
   ]

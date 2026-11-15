@@ -159,7 +159,10 @@
           w: numIn(e.w, E.MIN_SIZE, 8000, COMPONENTS[e.type].w),
           h: numIn(e.h, 4, 8000, COMPONENTS[e.type].h),
           text: typeof e.text === 'string' ? e.text.slice(0, 2000) : '',
-          checked: !!e.checked
+          checked: !!e.checked,
+          fill: E.normHex(e.fill),
+          stroke: E.normHex(e.stroke),
+          color: E.normHex(e.color)
         };
       });
       return { id: id, name: str(sc.name, 60, 'Tela ' + (i + 1)), elements: els };
@@ -407,11 +410,26 @@
     announce('Tela ' + activeScreen().name + '.');
   }
 
+  /* No celular, o painel é uma folha inferior: rola a prancheta para o elemento ficar visível acima dela. */
+  function revealSelection() {
+    if (!document.body.classList.contains('inspector-open') || !engine.selection.length) return;
+    var node = engine.nodes.get(engine.selection[0]);
+    if (!node) return;
+    var ws = $('workspace'), wr = ws.getBoundingClientRect(), r = node.getBoundingClientRect();
+    var limit = $('inspector').getBoundingClientRect().top - 16;
+    if (r.bottom > limit) {
+      var shift = Math.min(r.bottom - limit, Math.max(0, r.top - wr.top - 8));
+      ws.scrollTop += shift;
+    }
+  }
+
   function openInspector(open) {
     document.body.classList.toggle('inspector-open', !!open);
     var b = $('el-props');
     b.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) setTimeout(function () { var t = $('insp-x'); if (t && !$('insp-form').hidden) t.focus(); }, 0);
+    if (open) {
+      setTimeout(function () { revealSelection(); var t = $('insp-x'); if (t && !$('insp-form').hidden) t.focus({ preventScroll: true }); }, 60);
+    }
   }
 
   function updateSelectionUI(ids) {
@@ -419,9 +437,11 @@
     var single = n === 1 ? els[0] : null;
     ['el-copy', 'el-dup', 'el-front', 'el-back', 'el-delete'].forEach(function (id) { setDisabled(id, n < 1); });
     setDisabled('el-edit', !(single && COMPONENTS[single.type].editable));
-    setDisabled('el-props', !single);
-    if (!single) openInspector(false);
+    setDisabled('el-props', n < 1);
+    setDisabled('el-colors', n < 1);
+    if (n < 1) openInspector(false);
     syncInspector(true);
+    setTimeout(revealSelection, 60);
   }
 
   function syncInspector(force) {
@@ -430,7 +450,8 @@
     if (els.length !== 1) {
       form.hidden = true;
       empty.hidden = false;
-      empty.textContent = els.length > 1 ? els.length + ' elementos selecionados. Use as ferramentas da barra para duplicar, copiar, ordenar ou excluir.' : 'Selecione um elemento na prancheta para editar suas propriedades.';
+      empty.textContent = els.length > 1 ? els.length + ' elementos selecionados. Use as ferramentas da barra para duplicar, copiar, ordenar ou excluir, ou aplique cores abaixo.' : 'Selecione um elemento na prancheta para editar suas propriedades e cores.';
+      syncColors(els, force);
       return;
     }
     var el = els[0], c = COMPONENTS[el.type];
@@ -447,6 +468,136 @@
     set('insp-w', Math.round(el.w));
     set('insp-h', Math.round(el.h));
     $('insp-checked').checked = !!el.checked;
+    syncColors(els, force);
+  }
+
+  /* ---------- Cores ---------- */
+  var SWATCHES = [
+    { name: 'Neutras', items: [['#FFFFFF', 'Branco'], ['#EEF0F4', 'Cinza névoa'], ['#C9CED8', 'Cinza claro'], ['#5B6270', 'Cinza médio'], ['#1F2430', 'Grafite'], ['#000000', 'Preto']] },
+    { name: 'Original', items: [['#29243C', 'Ameixa escura'], ['#5C3F69', 'Roxo'], ['#955A89', 'Orquídea'], ['#F07DDC', 'Rosa']] },
+    { name: 'Sóbrio', items: [['#156372', 'Petróleo'], ['#2098AE', 'Turquesa'], ['#3BC2DB', 'Ciano'], ['#ABE5EF', 'Gelo']] },
+    { name: 'Hawaii', items: [['#703500', 'Marrom'], ['#FF7800', 'Laranja'], ['#FFF700', 'Amarelo'], ['#87FF00', 'Lima']] },
+    { name: 'Groenlândia', items: [['#002699', 'Azul real'], ['#007299', 'Azul glacial'], ['#00A8E0', 'Céu'], ['#270099', 'Índigo']] }
+  ];
+  var COLOR_LABEL = { fill: 'Fundo', stroke: 'Borda', color: 'Texto' };
+  var colorTarget = 'fill';
+
+  function defaultColorFor(el, target) {
+    var ci = E.colorInfo(el);
+    if (target === 'fill') return ci.bg;
+    if (target === 'color') return ci.text;
+    return '#1F2430';
+  }
+
+  function syncColors(els, force) {
+    var sec = $('insp-colors');
+    if (!els.length) { sec.hidden = true; return; }
+    sec.hidden = false;
+    var ok = { fill: false, stroke: true, color: false };
+    els.forEach(function (el) {
+      if (el.type !== 'divider') ok.fill = true;
+      if (COMPONENTS[el.type].editable) ok.color = true;
+    });
+    ['fill', 'stroke', 'color'].forEach(function (k) { $('seg-' + k).hidden = !ok[k]; });
+    if (!ok[colorTarget]) colorTarget = ok.fill ? 'fill' : 'stroke';
+    document.querySelectorAll('input[name="color-target"]').forEach(function (r) { r.checked = r.value === colorTarget; });
+
+    ['fill', 'stroke', 'color'].forEach(function (k) {
+      var vals = els.map(function (e) { return e[k] || ''; });
+      var same = vals.every(function (v) { return v === vals[0]; });
+      var chip = $('chip-' + k), val = $('val-' + k);
+      if (!same) { chip.style.background = ''; chip.classList.add('is-default'); val.textContent = 'vários'; }
+      else if (vals[0] === '') { chip.style.background = ''; chip.classList.add('is-default'); val.textContent = k === 'color' ? 'automático' : 'padrão'; }
+      else { chip.classList.remove('is-default'); chip.style.background = vals[0]; val.textContent = vals[0]; }
+    });
+
+    var cur = els.map(function (e) { return e[colorTarget] || ''; });
+    var curVal = cur.every(function (v) { return v === cur[0]; }) ? cur[0] : null;
+    document.querySelectorAll('.swatch-btn').forEach(function (b) {
+      b.setAttribute('aria-pressed', curVal && b.dataset.hex === curVal ? 'true' : 'false');
+      b.setAttribute('aria-label', COLOR_LABEL[colorTarget] + ': ' + b.dataset.name + ' ' + b.dataset.hex);
+    });
+    var inp = $('color-custom');
+    if (force || document.activeElement !== inp) inp.value = (curVal || defaultColorFor(els[0], colorTarget)).toLowerCase();
+    $('color-reset').textContent = colorTarget === 'color' ? 'Texto automático' : colorTarget === 'fill' ? 'Fundo padrão' : 'Borda padrão';
+
+    var info = $('color-info');
+    if (els.length === 1 && COMPONENTS[els[0].type].editable) {
+      var r = E.colorInfo(els[0]).ratio;
+      var level = r >= 7 ? 'AAA ✓' : r >= 4.5 ? 'AA ✓' : r >= 3 ? 'só para texto grande ⚠' : 'abaixo do mínimo WCAG ✗';
+      info.textContent = 'Contraste texto/fundo: ' + r.toFixed(2) + ':1 — ' + level + (r < 4.5 ? '. Use "Texto automático" para corrigir.' : '');
+      info.classList.toggle('is-bad', r < 4.5);
+      info.hidden = false;
+    } else if (els.length > 1) {
+      info.textContent = 'Cores aplicadas a ' + els.length + ' elementos.';
+      info.classList.remove('is-bad');
+      info.hidden = false;
+    } else {
+      info.hidden = true;
+    }
+  }
+
+  function applyColor(target, hex, tag) {
+    if (!engine.selection.length) return;
+    var patch = {};
+    patch[target] = hex;
+    engine.updateMany(engine.selection.slice(), patch, tag || null);
+    var names = { fill: 'Fundo', stroke: 'Borda', color: 'Texto' };
+    announce(names[target] + (hex ? ' alterado para ' + hex + '.' : ' restaurado ao padrão.'));
+  }
+
+  function buildSwatches() {
+    var box = $('swatches');
+    SWATCHES.forEach(function (g) {
+      var t = document.createElement('p');
+      t.className = 'sw-group';
+      t.textContent = g.name;
+      var row = document.createElement('div');
+      row.className = 'sw-row';
+      row.setAttribute('role', 'group');
+      row.setAttribute('aria-label', 'Cores ' + g.name);
+      g.items.forEach(function (it) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'swatch-btn';
+        b.dataset.hex = it[0];
+        b.dataset.name = it[1];
+        b.style.background = it[0];
+        b.style.color = E.autoText(it[0]);
+        b.title = it[1] + ' ' + it[0];
+        b.setAttribute('aria-pressed', 'false');
+        b.appendChild(svgIcon('i-check'));
+        row.appendChild(b);
+      });
+      box.appendChild(t);
+      box.appendChild(row);
+    });
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('.swatch-btn');
+      if (b) applyColor(colorTarget, b.dataset.hex, null);
+    });
+    $('color-targets').addEventListener('change', function (e) {
+      if (e.target.name !== 'color-target') return;
+      colorTarget = e.target.value;
+      syncColors(engine.selectedElements(), true);
+    });
+    $('color-custom').addEventListener('input', function (e) {
+      applyColor(colorTarget, e.target.value, '~color-' + colorTarget);
+    });
+    $('color-reset').addEventListener('click', function () { applyColor(colorTarget, '', null); });
+  }
+
+  function openColors() {
+    if (!engine.selection.length) return;
+    if (window.matchMedia('(max-width: 899.98px)').matches) {
+      document.body.classList.add('inspector-open');
+      $('el-props').setAttribute('aria-expanded', 'true');
+    }
+    setTimeout(function () {
+      revealSelection();
+      var r = document.querySelector('input[name="color-target"]:checked');
+      if (r) { r.scrollIntoView({ block: 'nearest' }); r.focus({ preventScroll: true }); }
+    }, 80);
   }
 
   function bindInspector() {
@@ -1247,6 +1398,7 @@
     'el-front': function () { engine.bringToFront(); },
     'el-back': function () { engine.sendToBack(); },
     'el-edit': function () { if (engine.selection.length === 1) engine.startEdit(engine.selection[0]); },
+    'el-colors': openColors,
     'el-props': function () { openInspector(!document.body.classList.contains('inspector-open')); },
     'el-delete': function () { engine.deleteSelected(); },
     'screen-add': addScreen,
@@ -1334,7 +1486,8 @@
       }
       if (document.querySelector('dialog[open]')) return;
       var tg = e.target, tag = tg && tg.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      var typing = tag === 'TEXTAREA' || tag === 'SELECT' || (tag === 'INPUT' && !/^(checkbox|radio|color|button|range)$/.test(tg.type));
+      if (typing) return;
       var mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
       if (mod && k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
       if (mod && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
@@ -1465,6 +1618,7 @@
     $('tb-grid').setAttribute('aria-pressed', gridOn ? 'true' : 'false');
 
     buildPalette();
+    buildSwatches();
     bindInspector();
     bindClipboardEvents();
     bindUI();
