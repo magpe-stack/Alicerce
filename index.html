@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="original" data-mode="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Alicerce — Wireframes de baixa fidelidade</title>
+  <meta name="description" content="Alicerce: PWA de prototipação rápida de wireframes de baixa fidelidade para web e mobile. Funciona offline.">
+  <meta name="theme-color" content="#29243C">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./themes.css">
+  <link rel="stylesheet" href="./style.css">
+  <script>
+    /* Aplica tema/modo salvos antes da primeira pintura (Tema Claro First: só vai para o escuro se escolhido). */
+    (function () {
+      try {
+        var t = localStorage.getItem('alicerce.theme');
+        var m = localStorage.getItem('alicerce.mode');
+        var ok = ['original', 'sobrio', 'hawaii', 'groenlandia'];
+        var d = document.documentElement;
+        d.dataset.theme = ok.indexOf(t) > -1 ? t : 'original';
+        d.dataset.mode = m === 'dark' ? 'dark' : 'light';
+      } catch (e) { /* localStorage indisponível */ }
+    })();
+  </script>
+</head>
+<body>
+
+<!-- ============ Sprite de ícones SVG inline ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></symbol>
+    <symbol id="i-zoom-in" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5M11 8v6M8 11h6"/></symbol>
+    <symbol id="i-zoom-out" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5M8 11h6"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10"/><path d="M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></symbol>
+    <symbol id="i-magnet" viewBox="0 0 24 24"><path d="M6 3v8a6 6 0 0 0 12 0V3h-4v8a2 2 0 0 1-4 0V3z"/><path d="M6 7h4M14 7h4"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+    <symbol id="i-desktop" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M8 3v5h8V3M8 21v-7h8v7"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></symbol>
+    <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-3"/><path d="M7 14h10v7H7z"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+    <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/></symbol>
+    <symbol id="i-duplicate" viewBox="0 0 24 24"><rect x="3" y="3" width="12" height="12" rx="2"/><rect x="9" y="9" width="12" height="12" rx="2"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-front" viewBox="0 0 24 24"><rect x="3" y="3" width="11" height="11" rx="1.5" stroke-dasharray="3 2"/><rect x="9" y="9" width="12" height="12" rx="1.5"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="1.5" stroke-dasharray="3 2"/><rect x="3" y="3" width="11" height="11" rx="1.5"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+    <symbol id="i-fullscreen" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-fullscreen-exit" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></symbol>
+    <symbol id="i-install" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 7v5M9.5 10l2.5 2.5L14.5 10M8 20h8"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17v.01"/></symbol>
+    <symbol id="i-github" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+    <symbol id="i-backup" viewBox="0 0 24 24"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
+    <symbol id="i-restore" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/><path d="M12 8v5l3 2"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><path d="M7.5 11v.01M10 7.5v.01M14.5 7.5v.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+    <symbol id="i-screen" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+
+    <!-- Ícones dos componentes -->
+    <symbol id="c-container" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/></symbol>
+    <symbol id="c-button" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"/><path d="M8 12h8"/></symbol>
+    <symbol id="c-input" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 10v4"/></symbol>
+    <symbol id="c-navbar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="1"/><path d="M5.5 7h3M3 14h18M3 18h12"/></symbol>
+    <symbol id="c-hamburger" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 9h10M7 12h10M7 15h10"/></symbol>
+    <symbol id="c-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 4l18 16M21 4L3 20"/></symbol>
+    <symbol id="c-text" viewBox="0 0 24 24"><path d="M4 6h16M4 11h16M4 16h10"/></symbol>
+    <symbol id="c-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01" stroke-width="3"/></symbol>
+    <symbol id="c-toggle" viewBox="0 0 24 24"><rect x="2" y="8" width="20" height="8" rx="4"/><circle cx="16" cy="12" r="2.5"/></symbol>
+    <symbol id="c-checkbox" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l3 3 5-6"/></symbol>
+    <symbol id="c-divider" viewBox="0 0 24 24"><path d="M3 12h18M3 9v6M21 9v6"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============ Splash Screen cinematográfica (3 s) ============ -->
+<div id="splash" role="img" aria-label="Alicerce — carregando">
+  <span class="splash-ring r1" aria-hidden="true"></span>
+  <span class="splash-ring r2" aria-hidden="true"></span>
+  <span class="splash-ring r3" aria-hidden="true"></span>
+  <span class="splash-sweep" aria-hidden="true"></span>
+  <div class="splash-inner">
+    <img class="splash-logo" src="./icon-512.png" srcset="./icon-192.png 192w, ./icon-512.png 512w" sizes="(max-width: 700px) 38vw, 176px" alt="" width="176" height="176">
+    <div class="splash-text">
+      <h1 class="splash-pill splash-title" aria-hidden="true">
+        <span style="--i:0">A</span><span style="--i:1">l</span><span style="--i:2">i</span><span style="--i:3">c</span><span style="--i:4">e</span><span style="--i:5">r</span><span style="--i:6">c</span><span style="--i:7">e</span>
+      </h1>
+      <p class="splash-pill splash-tag" aria-hidden="true">A base antes das paredes</p>
+    </div>
+  </div>
+  <div class="splash-bar" aria-hidden="true"><span></span></div>
+</div>
+
+<a class="skip-link" href="#workspace">Ir para a prancheta</a>
+
+<div id="app">
+
+  <!-- ============ Cabeçalho ============ -->
+  <header class="app-header">
+    <button type="button" id="btn-menu" class="icon-btn" data-action="menu" aria-label="Abrir menu de navegação" aria-expanded="false" aria-controls="drawer">
+      <svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg>
+    </button>
+
+    <a class="brand" href="https://magpe-stack.github.io/Alicerce/" target="_blank" rel="noopener noreferrer" aria-label="Alicerce — página oficial do app (abre em nova aba)">
+      <img src="./icon-192.png" alt="" width="32" height="32">
+      <span class="brand-name">Alicerce</span>
+    </a>
+
+    <button type="button" id="project-name" class="project-name" data-action="rename-project" title="Renomear projeto" aria-label="Renomear projeto atual">
+      <span id="project-name-text">Projeto</span>
+      <svg class="icon icon-sm" aria-hidden="true"><use href="#i-edit"/></svg>
+    </button>
+
+    <span class="spacer"></span>
+
+    <div class="hdr-actions">
+      <button type="button" class="icon-btn hide-narrow" data-action="new" title="Novo projeto">
+        <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span class="btn-text">Novo</span>
+      </button>
+      <button type="button" class="icon-btn hide-narrow" data-action="projects" title="Meus projetos">
+        <svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg><span class="btn-text">Projetos</span>
+      </button>
+
+      <label class="visually-hidden" for="theme-select">Tema de cores</label>
+      <select id="theme-select" class="hdr-select hide-narrow js-theme-select" title="Tema de cores">
+        <option value="original">Original</option>
+        <option value="sobrio">Sóbrio</option>
+        <option value="hawaii">Hawaii</option>
+        <option value="groenlandia">Groenlândia</option>
+      </select>
+
+      <button type="button" class="icon-btn js-mode-toggle" data-action="mode" aria-label="Ativar modo escuro" title="Alternar modo claro/escuro">
+        <svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg>
+      </button>
+      <button type="button" class="icon-btn hide-narrow js-fs" data-action="fullscreen" aria-label="Entrar em tela cheia" title="Tela cheia">
+        <svg class="icon" aria-hidden="true"><use href="#i-fullscreen"/></svg>
+      </button>
+      <button type="button" class="icon-btn js-install" data-action="install" hidden title="Instalar o Alicerce como aplicativo">
+        <svg class="icon" aria-hidden="true"><use href="#i-install"/></svg><span class="btn-text hide-narrow">Instalar</span>
+      </button>
+      <a class="icon-btn hide-narrow" href="https://github.com/magpe-stack/Alicerce" target="_blank" rel="noopener noreferrer" aria-label="Repositório do Alicerce no GitHub (abre em nova aba)" title="GitHub">
+        <svg class="icon icon-fill" aria-hidden="true"><use href="#i-github"/></svg>
+      </a>
+      <a class="icon-btn hide-narrow" href="https://github.com/magpe-stack/Alicerce/blob/main/README.md" target="_blank" rel="noopener noreferrer" aria-label="Ajuda: documentação do Alicerce (abre em nova aba)" title="Ajuda">
+        <svg class="icon" aria-hidden="true"><use href="#i-help"/></svg>
+      </a>
+    </div>
+  </header>
+  <div class="accent-strip" aria-hidden="true"></div>
+
+  <!-- ============ Barra de ferramentas ============ -->
+  <div class="toolbar" role="toolbar" aria-label="Ferramentas do projeto">
+    <div class="tb-group" role="group" aria-label="Histórico">
+      <button type="button" id="tb-undo" class="icon-btn" data-action="undo" aria-label="Desfazer" title="Desfazer (Ctrl+Z)" disabled><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg></button>
+      <button type="button" id="tb-redo" class="icon-btn" data-action="redo" aria-label="Refazer" title="Refazer (Ctrl+Y)" disabled><svg class="icon" aria-hidden="true"><use href="#i-redo"/></svg></button>
+    </div>
+
+    <div class="tb-group" role="group" aria-label="Zoom">
+      <button type="button" class="icon-btn" data-action="zoom-out" aria-label="Reduzir zoom" title="Reduzir zoom"><svg class="icon" aria-hidden="true"><use href="#i-zoom-out"/></svg></button>
+      <button type="button" id="tb-zoom-label" class="icon-btn zoom-label" data-action="zoom-100" aria-label="Zoom atual 100%. Ativar para voltar a 100%" title="Voltar a 100%">100%</button>
+      <button type="button" class="icon-btn" data-action="zoom-in" aria-label="Aumentar zoom" title="Aumentar zoom"><svg class="icon" aria-hidden="true"><use href="#i-zoom-in"/></svg></button>
+      <button type="button" class="icon-btn" data-action="fit" aria-label="Ajustar à janela" title="Ajustar à janela"><svg class="icon" aria-hidden="true"><use href="#i-fit"/></svg></button>
+    </div>
+
+    <div class="tb-group" role="group" aria-label="Prancheta">
+      <button type="button" id="tb-grid" class="icon-btn" data-action="grid" aria-pressed="true" aria-label="Mostrar grade" title="Mostrar grade"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg></button>
+      <button type="button" id="tb-snap" class="icon-btn" data-action="snap" aria-pressed="true" aria-label="Grade magnética (encaixe)" title="Grade magnética (encaixe)"><svg class="icon" aria-hidden="true"><use href="#i-magnet"/></svg></button>
+      <button type="button" id="vp-mobile" class="icon-btn" data-action="vp-mobile" aria-pressed="true" aria-label="Moldura Mobile 360 por 800" title="Mobile 360×800"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg></button>
+      <button type="button" id="vp-desktop" class="icon-btn" data-action="vp-desktop" aria-pressed="false" aria-label="Moldura Desktop 1280 por 800" title="Desktop 1280×800"><svg class="icon" aria-hidden="true"><use href="#i-desktop"/></svg></button>
+    </div>
+
+    <div class="tb-group" role="group" aria-label="Arquivo">
+      <button type="button" class="icon-btn" data-action="open" aria-label="Abrir arquivo do disco" title="Abrir arquivo (Ctrl+O)"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg></button>
+      <button type="button" class="icon-btn" data-action="save" aria-label="Salvar no disco" title="Salvar no disco (Ctrl+S)"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg></button>
+      <button type="button" class="icon-btn" data-action="export" aria-label="Exportar, compartilhar e importar" title="Exportar / Importar"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg></button>
+      <button type="button" class="icon-btn" data-action="print" aria-label="Imprimir todas as telas" title="Imprimir todas as telas"><svg class="icon" aria-hidden="true"><use href="#i-print"/></svg></button>
+      <button type="button" class="icon-btn" data-action="share" aria-label="Compartilhar projeto" title="Compartilhar projeto"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg></button>
+    </div>
+
+    <div class="tb-group" role="group" aria-label="Elemento selecionado">
+      <button type="button" id="el-copy" class="icon-btn" data-action="el-copy" aria-label="Copiar elemento" title="Copiar (Ctrl+C)" disabled><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg></button>
+      <button type="button" id="el-paste" class="icon-btn" data-action="el-paste" aria-label="Colar elemento" title="Colar (Ctrl+V)"><svg class="icon" aria-hidden="true"><use href="#i-paste"/></svg></button>
+      <button type="button" id="el-dup" class="icon-btn" data-action="el-dup" aria-label="Duplicar elemento" title="Duplicar (Ctrl+D)" disabled><svg class="icon" aria-hidden="true"><use href="#i-duplicate"/></svg></button>
+      <button type="button" id="el-front" class="icon-btn" data-action="el-front" aria-label="Trazer para frente" title="Trazer para frente (Ctrl+])" disabled><svg class="icon" aria-hidden="true"><use href="#i-front"/></svg></button>
+      <button type="button" id="el-back" class="icon-btn" data-action="el-back" aria-label="Enviar para trás" title="Enviar para trás (Ctrl+[)" disabled><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg></button>
+      <button type="button" id="el-edit" class="icon-btn" data-action="el-edit" aria-label="Editar texto do elemento" title="Editar texto (Enter ou duplo clique)" disabled><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+      <button type="button" id="el-props" class="icon-btn only-narrow" data-action="el-props" aria-label="Propriedades do elemento" aria-expanded="false" aria-controls="inspector" title="Propriedades" disabled><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg></button>
+      <button type="button" id="el-delete" class="icon-btn" data-action="el-delete" aria-label="Excluir elemento" title="Excluir (Delete)" disabled><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
+    </div>
+
+    <span id="save-status" class="save-status" role="status">Pronto</span>
+  </div>
+
+  <!-- ============ Abas de telas ============ -->
+  <div class="screens-bar">
+    <div id="screen-tabs" class="tabs" role="tablist" aria-label="Telas do projeto"></div>
+    <div class="tab-actions" role="group" aria-label="Gerenciar telas">
+      <button type="button" class="icon-btn" data-action="screen-add" aria-label="Nova tela" title="Nova tela"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>
+      <button type="button" class="icon-btn" data-action="screen-rename" aria-label="Renomear tela atual" title="Renomear tela"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+      <button type="button" class="icon-btn" data-action="screen-dup" aria-label="Duplicar tela atual" title="Duplicar tela"><svg class="icon" aria-hidden="true"><use href="#i-duplicate"/></svg></button>
+      <button type="button" class="icon-btn" data-action="screen-delete" aria-label="Excluir tela atual" title="Excluir tela"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
+    </div>
+  </div>
+
+  <!-- ============ Área principal ============ -->
+  <main class="main" id="main">
+    <aside class="palette" aria-label="Paleta de componentes">
+      <h2 class="palette-title">Componentes</h2>
+      <div id="palette-list" class="palette-list"></div>
+    </aside>
+
+    <div id="workspace" class="workspace" tabindex="0" role="region" aria-label="Prancheta de wireframe. Selecione um elemento e use as setas para movê-lo, Shift para passos de 10, Alt com setas para redimensionar.">
+      <div id="stage-wrap" class="stage-wrap">
+        <div id="stage" class="stage grid-on" role="listbox" aria-multiselectable="true" aria-label="Elementos da tela"></div>
+      </div>
+    </div>
+
+    <aside id="inspector" class="inspector" aria-label="Propriedades do elemento">
+      <div class="inspector-head">
+        <h2 class="inspector-title">Propriedades</h2>
+        <button type="button" class="icon-btn only-narrow" data-action="el-props" aria-label="Fechar propriedades"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <p id="insp-empty" class="insp-empty">Selecione um elemento na prancheta para editar suas propriedades.</p>
+      <div id="insp-form" class="insp-form" hidden>
+        <p class="insp-type"><strong id="insp-type">Elemento</strong></p>
+        <div class="field" id="insp-text-field">
+          <label for="insp-text">Texto</label>
+          <textarea id="insp-text" rows="3"></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="insp-x">X</label><input id="insp-x" type="number" step="1" inputmode="numeric"></div>
+          <div class="field"><label for="insp-y">Y</label><input id="insp-y" type="number" step="1" inputmode="numeric"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="insp-w">Largura</label><input id="insp-w" type="number" step="1" min="16" inputmode="numeric"></div>
+          <div class="field"><label for="insp-h">Altura</label><input id="insp-h" type="number" step="1" min="16" inputmode="numeric"></div>
+        </div>
+        <div class="field field-check" id="insp-state-field">
+          <input id="insp-checked" type="checkbox">
+          <label for="insp-checked" id="insp-checked-label">Marcado</label>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ============ Rodapé padronizado ============ -->
+  <footer class="app-footer">
+    <p class="footer-tag"><span class="hide-narrow">Alicerce — a base antes das paredes</span></p>
+    <nav class="footer-links" aria-label="Links do projeto">
+      <a class="icon-btn footer-logo" href="https://magpe-stack.github.io/Alicerce/" target="_blank" rel="noopener noreferrer" aria-label="Alicerce — página oficial do app (abre em nova aba)" title="Alicerce">
+        <img src="./icon-192.png" alt="" width="28" height="28"><span class="btn-text hide-narrow">Alicerce</span>
+      </a>
+      <a class="icon-btn" href="https://github.com/magpe-stack/Alicerce" target="_blank" rel="noopener noreferrer" aria-label="Repositório do Alicerce no GitHub (abre em nova aba)" title="GitHub">
+        <svg class="icon icon-fill" aria-hidden="true"><use href="#i-github"/></svg><span class="btn-text hide-narrow">GitHub</span>
+      </a>
+      <a class="icon-btn" href="https://github.com/magpe-stack/Alicerce/blob/main/README.md" target="_blank" rel="noopener noreferrer" aria-label="Ajuda: documentação do Alicerce (abre em nova aba)" title="Ajuda">
+        <svg class="icon" aria-hidden="true"><use href="#i-help"/></svg><span class="btn-text hide-narrow">Ajuda</span>
+      </a>
+    </nav>
+  </footer>
+</div>
+
+<!-- ============ Gaveta de navegação ============ -->
+<div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+<aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true" inert>
+  <div class="drawer-head">
+    <a class="brand" href="https://magpe-stack.github.io/Alicerce/" target="_blank" rel="noopener noreferrer" aria-label="Alicerce — página oficial do app (abre em nova aba)">
+      <img src="./icon-192.png" alt="" width="36" height="36"><span class="brand-name" id="drawer-title">Alicerce</span>
+    </a>
+    <button type="button" id="drawer-close" class="icon-btn" data-action="drawer-close" aria-label="Fechar menu"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+  </div>
+
+  <nav class="drawer-nav" aria-label="Menu principal">
+    <p class="drawer-group">Projetos</p>
+    <button type="button" class="nav-item" data-action="new"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Novo Projeto</button>
+    <button type="button" class="nav-item" data-action="projects"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg>Meus Projetos</button>
+    <button type="button" class="nav-item" data-action="open"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>Abrir arquivo…</button>
+    <button type="button" class="nav-item" data-action="save"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg>Salvar no disco</button>
+    <button type="button" class="nav-item" data-action="saveas"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg>Salvar como…</button>
+    <button type="button" class="nav-item" data-action="export"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Exportar / Importar / Compartilhar</button>
+    <button type="button" class="nav-item" data-action="print"><svg class="icon" aria-hidden="true"><use href="#i-print"/></svg>Imprimir todas as telas</button>
+
+    <p class="drawer-group">Dados</p>
+    <button type="button" class="nav-item" data-action="backup"><svg class="icon" aria-hidden="true"><use href="#i-backup"/></svg>Backup Geral (todos os projetos)</button>
+    <button type="button" class="nav-item" data-action="restore"><svg class="icon" aria-hidden="true"><use href="#i-restore"/></svg>Restaurar Backup…</button>
+
+    <p class="drawer-group">Aparência</p>
+    <fieldset class="theme-fieldset">
+      <legend class="visually-hidden">Tema de cores</legend>
+      <div class="theme-list" id="theme-radios"></div>
+    </fieldset>
+    <button type="button" class="nav-item js-mode-toggle" data-action="mode"><svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg><span class="btn-text">Modo escuro</span></button>
+    <button type="button" class="nav-item js-fs" data-action="fullscreen"><svg class="icon" aria-hidden="true"><use href="#i-fullscreen"/></svg><span class="btn-text">Tela cheia</span></button>
+
+    <p class="drawer-group">Aplicativo</p>
+    <button type="button" class="nav-item js-install" data-action="install" hidden><svg class="icon" aria-hidden="true"><use href="#i-install"/></svg>Instalar Alicerce</button>
+    <button type="button" class="nav-item" data-action="about"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>Sobre</button>
+    <a class="nav-item" href="https://github.com/magpe-stack/Alicerce" target="_blank" rel="noopener noreferrer"><svg class="icon icon-fill" aria-hidden="true"><use href="#i-github"/></svg>GitHub <span class="visually-hidden">(abre em nova aba)</span></a>
+    <a class="nav-item" href="https://github.com/magpe-stack/Alicerce/blob/main/README.md" target="_blank" rel="noopener noreferrer"><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg>Ajuda <span class="visually-hidden">(abre em nova aba)</span></a>
+  </nav>
+</aside>
+
+<!-- ============ Diálogos ============ -->
+<dialog id="dlg-prompt" aria-labelledby="prompt-title">
+  <form method="dialog" id="prompt-form" class="dlg-form">
+    <h2 id="prompt-title"></h2>
+    <div class="field">
+      <label for="prompt-input" id="prompt-label"></label>
+      <input id="prompt-input" type="text" required pattern=".*\S.*" maxlength="80" autocomplete="off">
+    </div>
+    <div class="dlg-actions">
+      <button type="submit" class="btn btn-secondary" value="cancel" formnovalidate>Cancelar</button>
+      <button type="submit" class="btn btn-primary" value="ok" id="prompt-ok">OK</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-confirm" aria-labelledby="confirm-title" aria-describedby="confirm-msg">
+  <form method="dialog" class="dlg-form">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-msg"></p>
+    <div class="dlg-actions">
+      <button type="submit" class="btn btn-secondary" value="cancel" id="confirm-cancel" formnovalidate>Cancelar</button>
+      <button type="submit" class="btn btn-secondary" value="alt" id="confirm-alt" hidden>Alternativa</button>
+      <button type="submit" class="btn btn-primary" value="ok" id="confirm-ok">OK</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-new" aria-labelledby="new-title">
+  <form method="dialog" id="new-form" class="dlg-form">
+    <div class="dlg-head">
+      <h2 id="new-title">Novo projeto</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Fechar"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="field">
+      <label for="new-name">Nome do projeto</label>
+      <input id="new-name" type="text" required pattern=".*\S.*" maxlength="80" autocomplete="off">
+    </div>
+    <fieldset class="vp-choice">
+      <legend>Formato inicial</legend>
+      <label class="vp-option"><input type="radio" name="new-vp" value="mobile" checked><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg><span><strong>Mobile</strong><small>360 × 800</small></span></label>
+      <label class="vp-option"><input type="radio" name="new-vp" value="desktop"><svg class="icon" aria-hidden="true"><use href="#i-desktop"/></svg><span><strong>Desktop</strong><small>1280 × 800</small></span></label>
+    </fieldset>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-secondary" data-close>Cancelar</button>
+      <button type="submit" class="btn btn-primary" value="ok" id="new-ok">Criar projeto</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-projects" class="dlg-wide" aria-labelledby="projects-title">
+  <div class="dlg-form">
+    <div class="dlg-head">
+      <h2 id="projects-title">Meus projetos</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Fechar"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <ul id="projects-list" class="projects-list"></ul>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-primary" data-action="new"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Novo projeto</button>
+      <button type="button" class="btn btn-secondary" data-close>Fechar</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlg-export" class="dlg-wide" aria-labelledby="export-title">
+  <div class="dlg-form">
+    <div class="dlg-head">
+      <h2 id="export-title">Exportar, importar e compartilhar</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Fechar"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p class="muted">Todas as opções processam o projeto completo: todas as telas, posições, dimensões, textos e metadados.</p>
+
+    <h3>Exportar</h3>
+    <div class="action-grid">
+      <button type="button" class="btn btn-secondary" data-action="export-json"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Projeto (.json)</button>
+      <button type="button" class="btn btn-secondary" data-action="export-png-all"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>PNG — todas as telas</button>
+      <button type="button" class="btn btn-secondary" data-action="export-png"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>PNG — tela atual</button>
+      <button type="button" class="btn btn-secondary" data-action="print"><svg class="icon" aria-hidden="true"><use href="#i-print"/></svg>Imprimir todas as telas</button>
+    </div>
+
+    <h3>Disco</h3>
+    <div class="action-grid">
+      <button type="button" class="btn btn-secondary" data-action="save"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg>Salvar no disco</button>
+      <button type="button" class="btn btn-secondary" data-action="saveas"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg>Salvar como…</button>
+    </div>
+
+    <h3>Importar</h3>
+    <div class="action-grid">
+      <button type="button" class="btn btn-secondary" data-action="open"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>Importar projeto ou backup…</button>
+    </div>
+
+    <h3>Compartilhar</h3>
+    <div class="action-grid">
+      <button type="button" class="btn btn-secondary" data-action="share-json"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg>Compartilhar projeto</button>
+      <button type="button" class="btn btn-secondary" data-action="share-png"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg>Compartilhar imagem PNG</button>
+    </div>
+
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-secondary" data-close>Fechar</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlg-about" class="dlg-wide" aria-labelledby="about-title">
+  <div class="dlg-form about">
+    <div class="dlg-head">
+      <h2 id="about-title">Sobre o Alicerce</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Fechar"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="about-hero">
+      <img src="./icon-192.png" alt="" width="72" height="72">
+      <p><strong>Alicerce</strong><br><span class="muted">Wireframes de baixa fidelidade — versão 1.0.0</span></p>
+    </div>
+
+    <h3>Propósito</h3>
+    <p>O Alicerce é uma ferramenta de prototipação rápida, no estilo rascunho, para estruturar telas e fluxos de aplicativos web e mobile com o mínimo de atrito. Funciona com toque e pinça no smartphone e com mouse e atalhos de teclado no desktop, tudo offline e sem dependências externas.</p>
+
+    <h3>A origem do nome</h3>
+    <p>O alicerce é a fundação de uma construção: a base sólida, clara e bem planejada que precisa existir antes de levantar as paredes. Em software é igual: antes de escrever código e definir a estética final, é preciso estruturar telas, hierarquia e fluxo. O Alicerce existe para essa etapa.</p>
+
+    <h3>Temas acessíveis</h3>
+    <p>Quatro temas — <strong>Original</strong>, <strong>Sóbrio</strong>, <strong>Hawaii</strong> e <strong>Groenlândia</strong> — combinados com modo claro (padrão) e escuro. Cada par de texto e fundo segue taxas de contraste auditadas (WCAG 2.1 AA/AAA): texto branco só sobre fundos escuros e texto preto só sobre fundos claros. Estados ativos também usam bordas, ícones e formas, não apenas cor, para funcionar com protanopia, deuteranopia e tritanopia.</p>
+
+    <h3>Atalhos de teclado</h3>
+    <dl class="shortcuts">
+      <div><dt>Setas</dt><dd>Mover o elemento selecionado (Shift: 10 px)</dd></div>
+      <div><dt>Alt + setas</dt><dd>Redimensionar o elemento selecionado</dd></div>
+      <div><dt>Enter / F2</dt><dd>Editar o texto do elemento</dd></div>
+      <div><dt>Delete</dt><dd>Excluir selecionados</dd></div>
+      <div><dt>Ctrl + D</dt><dd>Duplicar</dd></div>
+      <div><dt>Ctrl + C / X / V</dt><dd>Copiar, recortar e colar</dd></div>
+      <div><dt>Ctrl + ] / [</dt><dd>Trazer para frente / enviar para trás</dd></div>
+      <div><dt>Ctrl + A</dt><dd>Selecionar tudo</dd></div>
+      <div><dt>Ctrl + Z / Y</dt><dd>Desfazer / refazer</dd></div>
+      <div><dt>Ctrl + S</dt><dd>Salvar no disco (Shift: Salvar como)</dd></div>
+      <div><dt>Ctrl + O</dt><dd>Abrir arquivo</dd></div>
+      <div><dt>Esc</dt><dd>Limpar a seleção / fechar diálogos</dd></div>
+    </dl>
+
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-primary" data-close>Fechar</button>
+    </div>
+  </div>
+</dialog>
+
+<input type="file" id="file-input" accept=".alicerce,.json,application/json" hidden>
+
+<div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+<div id="sr-live" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+<div id="print-area" aria-hidden="true"></div>
+
+<script src="./storage.js" defer></script>
+<script src="./canvas-engine.js" defer></script>
+<script src="./app.js" defer></script>
+</body>
+</html>

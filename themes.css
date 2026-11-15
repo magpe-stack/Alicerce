@@ -1,0 +1,168 @@
+/* Alicerce — themes.css
+ * 4 temas (Original, Sóbrio, Hawaii, Groenlândia) x Modo Claro (padrão) / Modo Escuro.
+ * Os pares texto/fundo seguem as taxas de contraste auditadas (laboratório Itten):
+ *   - fundos escuros  -> texto branco (#FFFFFF)
+ *   - fundos claros   -> texto preto (#000000)
+ * Tokens semânticos usados pela interface:
+ *   --header-bg/--header-fg   barra superior
+ *   --accent                  cor de destaque para texto, ícones e bordas sobre o fundo da página
+ *   --accent-bg/--accent-fg   botões primários e estados ativos (par auditado)
+ *   --btn-border              borda sólida dos botões primários (indicador além da cor)
+ *   --link / --focus          links e anel de foco
+ *   --art-sel                 cor de seleção sobre a prancheta (sempre branca)
+ */
+
+/* ---------- Neutros (compartilhados) ---------- */
+:root {
+  color-scheme: light;
+  --bg: #FFFFFF;
+  --surface: #F6F7F9;
+  --surface-2: #E9ECF1;
+  --text: #10141D;
+  --text-muted: #4A5160;
+  --border: #7B8394;
+  --divider: #D5D9E0;
+  --danger-bg: #B3261E;
+  --danger-fg: #FFFFFF;
+  --toast-bg: #10141D;
+  --toast-fg: #FFFFFF;
+  --overlay: rgba(16, 20, 29, 0.62);
+}
+
+:root[data-mode="dark"] {
+  color-scheme: dark;
+  --bg: #10141D;
+  --surface: #171D2A;
+  --surface-2: #232B3C;
+  --text: #FFFFFF;
+  --text-muted: #C5CAD6;
+  --border: #8089A0;
+  --divider: #2E374A;
+  --danger-bg: #FF8A80;
+  --danger-fg: #000000;
+  --toast-bg: #FFFFFF;
+  --toast-fg: #10141D;
+  --overlay: rgba(0, 0, 0, 0.72);
+}
+
+/* =====================================================================
+   TEMA 1 — ORIGINAL (padrão) — Harmonia Análoga
+   ===================================================================== */
+:root[data-theme="original"] {
+  --itten-base-1: #35243C; --itten-base-2: #F07DDC; --itten-base-3: #EC22CA;
+  --itten-color-1: #29243C; --itten-color-2: #35243C; --itten-color-3: #3C2437;
+  --itten-color-4: #1A1726; --itten-color-5: #221726; --itten-color-6: #261723;
+  --itten-color-7: #473F69; --itten-color-8: #5C3F69; --itten-color-9: #693F60;
+  --itten-color-10: #665A95; --itten-color-11: #845A95; --itten-color-12: #955A89;
+  --itten-primary: #29243C; --itten-secondary: #35243C; --itten-accent: #3C2437;
+  --itten-gradient: linear-gradient(135deg, #29243C 0%, #35243C 50%, #3C2437 100%);
+
+  --art-sel: #693F60;
+  --splash-pill-bg: #29243C; --splash-pill-fg: #FFFFFF;
+
+  /* Modo claro */
+  --header-bg: #29243C; --header-fg: #FFFFFF;
+  --accent: #5C3F69;
+  --accent-bg: #29243C; --accent-fg: #FFFFFF;
+  --btn-border: #29243C;
+  --link: #5C3F69; --focus: #5C3F69;
+}
+:root[data-theme="original"][data-mode="dark"] {
+  --header-bg: #10141D; --header-fg: #FFFFFF;
+  --accent: #F07DDC;
+  --accent-bg: #F07DDC; --accent-fg: #000000;
+  --btn-border: #F07DDC;
+  --link: #F07DDC; --focus: #F07DDC;
+}
+
+/* =====================================================================
+   TEMA 2 — SÓBRIO — Harmonia Monocromática
+   ===================================================================== */
+:root[data-theme="sobrio"] {
+  --itten-base-1: #2098AE; --itten-base-2: #0DD811; --itten-base-3: #864014;
+  --itten-color-1: #2098AE; --itten-color-2: #156372; --itten-color-3: #3BC2DB;
+  --itten-color-4: #0A2F35; --itten-color-5: #77D5E6; --itten-color-6: #0A2D34;
+  --itten-color-7: #ABE5EF; --itten-color-8: #104B56; --itten-color-9: #3707A1;
+  --itten-color-10: #CD17D3; --itten-color-11: #4A45E8; --itten-color-12: #FB74E2;
+  --itten-primary: #2098AE; --itten-secondary: #156372; --itten-accent: #3BC2DB;
+  --itten-gradient: linear-gradient(135deg, #2098AE 0%, #156372 50%, #3BC2DB 100%);
+
+  --art-sel: #156372;
+  --splash-pill-bg: #0A2F35; --splash-pill-fg: #FFFFFF;
+
+  /* Modo claro */
+  --header-bg: #156372; --header-fg: #FFFFFF;
+  --accent: #156372;
+  --accent-bg: #2098AE; --accent-fg: #000000;
+  --btn-border: #156372;
+  --link: #156372; --focus: #156372;
+}
+:root[data-theme="sobrio"][data-mode="dark"] {
+  --header-bg: #10141D; --header-fg: #FFFFFF;
+  --accent: #3BC2DB;
+  --accent-bg: #3BC2DB; --accent-fg: #000000;
+  --btn-border: #3BC2DB;
+  --link: #3BC2DB; --focus: #3BC2DB;
+}
+
+/* =====================================================================
+   TEMA 3 — HAWAII — Harmonia Análoga
+   Atenção ao daltonismo: estados ativos usam borda sólida, ícone e forma,
+   nunca apenas a cor.
+   ===================================================================== */
+:root[data-theme="hawaii"] {
+  --itten-base-1: #FFF700; --itten-base-2: #FF0026; --itten-base-3: #FFA200;
+  --itten-color-1: #FF7800; --itten-color-2: #FFF700; --itten-color-3: #87FF00;
+  --itten-color-4: #B85600; --itten-color-5: #B8B200; --itten-color-6: #62B800;
+  --itten-color-7: #FF9D47; --itten-color-8: #FFF947; --itten-color-9: #A9FF47;
+  --itten-color-10: #703500; --itten-color-11: #706D00; --itten-color-12: #3C7000;
+  --itten-primary: #FF7800; --itten-secondary: #FFF700; --itten-accent: #87FF00;
+  --itten-gradient: linear-gradient(135deg, #FF7800 0%, #FFF700 50%, #87FF00 100%);
+
+  --art-sel: #703500;
+  --splash-pill-bg: #703500; --splash-pill-fg: #FFFFFF;
+
+  /* Modo claro */
+  --header-bg: #FF7800; --header-fg: #000000;
+  --accent: #703500;
+  --accent-bg: #FF7800; --accent-fg: #000000;
+  --btn-border: #000000;
+  --link: #703500; --focus: #703500;
+}
+:root[data-theme="hawaii"][data-mode="dark"] {
+  --header-bg: #10141D; --header-fg: #FFFFFF;
+  --accent: #FFF700;
+  --accent-bg: #FFF700; --accent-fg: #000000;
+  --btn-border: #FFF700;
+  --link: #FFF700; --focus: #FFF700;
+}
+
+/* =====================================================================
+   TEMA 4 — GROENLÂNDIA — Harmonia Análoga
+   ===================================================================== */
+:root[data-theme="groenlandia"] {
+  --itten-base-1: #002699; --itten-base-2: #0211E3; --itten-base-3: #006EFF;
+  --itten-color-1: #007299; --itten-color-2: #002699; --itten-color-3: #270099;
+  --itten-color-4: #003D52; --itten-color-5: #001452; --itten-color-6: #150052;
+  --itten-color-7: #00A8E0; --itten-color-8: #0038E0; --itten-color-9: #3800E0;
+  --itten-color-10: #002E3D; --itten-color-11: #000F3D; --itten-color-12: #0F003D;
+  --itten-primary: #007299; --itten-secondary: #002699; --itten-accent: #270099;
+  --itten-gradient: linear-gradient(135deg, #007299 0%, #002699 50%, #270099 100%);
+
+  --art-sel: #002699;
+  --splash-pill-bg: #001452; --splash-pill-fg: #FFFFFF;
+
+  /* Modo claro */
+  --header-bg: #002699; --header-fg: #FFFFFF;
+  --accent: #002699;
+  --accent-bg: #007299; --accent-fg: #FFFFFF;
+  --btn-border: #002699;
+  --link: #002699; --focus: #002699;
+}
+:root[data-theme="groenlandia"][data-mode="dark"] {
+  --header-bg: #10141D; --header-fg: #FFFFFF;
+  --accent: #00A8E0;
+  --accent-bg: #00A8E0; --accent-fg: #000000;
+  --btn-border: #00A8E0;
+  --link: #00A8E0; --focus: #00A8E0;
+}
