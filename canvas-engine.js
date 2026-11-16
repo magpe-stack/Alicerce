@@ -67,7 +67,34 @@
     if (el.fill) st.setProperty('--c-bg', el.fill); else st.removeProperty('--c-bg');
     if (el.stroke) st.setProperty('--c-line', el.stroke); else st.removeProperty('--c-line');
     if (el.fill || el.color) st.setProperty('--c-text', textColorOf(el)); else st.removeProperty('--c-text');
+    node.classList.toggle('is-flip-h', !!el.flipH);
+    node.classList.toggle('is-flip-v', !!el.flipV);
   }
+
+  /* ------------------------------------------------------------------ cantos (raio) */
+  var DEFAULT_RADIUS = { container: 8, button: 8, input: 6, navbar: 0, hamburger: 8, image: 0, text: 4, list: 8 };
+  Object.keys(DEFAULT_RADIUS).forEach(function (k) { COMPONENTS[k].radius = true; });
+
+  /* r = null (padrão do tipo) ou [sup.esq., sup.dir., inf.dir., inf.esq.] em inteiros 0..999 */
+  function normR(r) {
+    if (typeof r === 'number' && isFinite(r)) r = [r, r, r, r];
+    if (!Array.isArray(r) || r.length !== 4) return null;
+    var out = r.map(function (v) { v = Math.round(Number(v)); return isFinite(v) ? Math.min(999, Math.max(0, v)) : 0; });
+    return out;
+  }
+  /* Escala proporcional, como no CSS, para que raios vizinhos nunca ultrapassem o lado. */
+  function fitRadii(r, w, hh) {
+    var f = 1;
+    function lim(a, b, side) { var sum = a + b; if (sum > 0 && side / sum < f) f = side / sum; }
+    lim(r[0], r[1], w); lim(r[3], r[2], w); lim(r[0], r[3], hh); lim(r[1], r[2], hh);
+    return r.map(function (v) { return Math.round(v * f * 100) / 100; });
+  }
+  function radiusOf(el) {
+    var d = DEFAULT_RADIUS[el.type] || 0;
+    var base = (el.r && COMPONENTS[el.type] && COMPONENTS[el.type].radius) ? el.r : [d, d, d, d];
+    return fitRadii(base, el.w, el.h);
+  }
+  function maxRadius(el) { return Math.max(1, Math.floor(Math.min(el.w, el.h) / 2)); }
 
   /* ------------------------------------------------------------------ utilidades */
   function noop() {}
@@ -96,6 +123,7 @@
     var t = firstLine(el.text);
     if (t && c.editable) out += ': ' + t;
     if (c.hasState) out += el.checked ? ', ' + c.stateLabel.toLowerCase() : ', desativado';
+    if (el.flipH || el.flipV) out += ', espelhado' + (el.flipH && el.flipV ? ' na horizontal e na vertical' : el.flipH ? ' na horizontal' : ' na vertical');
     out += '. Posição ' + Math.round(el.x) + ', ' + Math.round(el.y) + '. Tamanho ' + Math.round(el.w) + ' por ' + Math.round(el.h) + '.';
     return out;
   }
@@ -174,6 +202,9 @@
     node.style.top = el.y + 'px';
     node.style.width = el.w + 'px';
     node.style.height = el.h + 'px';
+    if (el.r && COMPONENTS[el.type] && COMPONENTS[el.type].radius) {
+      node.style.setProperty('--c-radius', fitRadii(el.r, el.w, el.h).map(function (v) { return v + 'px'; }).join(' '));
+    } else node.style.removeProperty('--c-radius');
   }
 
   function buildNode(el, plain) {
@@ -383,7 +414,7 @@
         x = clamp(x, 0, Math.max(0, vp.w - w));
         y = clamp(y, 0, Math.max(0, vp.h - hgt));
       }
-      var el = { id: uid(), type: type, x: x, y: y, w: w, h: hgt, text: c.text || '', checked: false, fill: '', stroke: '', color: '' };
+      var el = { id: uid(), type: type, x: x, y: y, w: w, h: hgt, text: c.text || '', checked: false, fill: '', stroke: '', color: '', flipH: false, flipV: false, r: null };
       this.screen.elements.push(el);
       var node = buildNode(el);
       this.nodes.set(el.id, node);
@@ -417,6 +448,7 @@
         var c = {
           id: uid(), type: e.type, text: e.text || '', checked: !!e.checked,
           fill: normHex(e.fill), stroke: normHex(e.stroke), color: normHex(e.color),
+          flipH: !!e.flipH, flipV: !!e.flipV, r: normR(e.r),
           w: e.w, h: e.h, x: e.x + off, y: e.y + off
         };
         c.x = clamp(c.x, 0, Math.max(0, vp.w - c.w));
@@ -473,7 +505,7 @@
       if (!els.length) return '';
       this._pasteCount = 0;
       return CLIP_PREFIX + JSON.stringify({
-        elements: els.map(function (e) { return { type: e.type, x: e.x, y: e.y, w: e.w, h: e.h, text: e.text, checked: !!e.checked, fill: e.fill || '', stroke: e.stroke || '', color: e.color || '' }; })
+        elements: els.map(function (e) { return { type: e.type, x: e.x, y: e.y, w: e.w, h: e.h, text: e.text, checked: !!e.checked, fill: e.fill || '', stroke: e.stroke || '', color: e.color || '', flipH: !!e.flipH, flipV: !!e.flipV, r: e.r || null }; })
       });
     }
 
@@ -488,6 +520,7 @@
       var els = this._cloneEls(items.map(function (e) {
         return { type: e.type, text: String(e.text || '').slice(0, 2000), checked: !!e.checked,
           fill: normHex(e.fill), stroke: normHex(e.stroke), color: normHex(e.color),
+          flipH: !!e.flipH, flipV: !!e.flipV, r: normR(e.r),
           x: num(e.x, 0), y: num(e.y, 0), w: Math.max(MIN_SIZE, num(e.w, 100)), h: Math.max(4, num(e.h, 40)) };
       }), off);
       this._addMany(els);
@@ -510,6 +543,10 @@
       if ('checked' in patch && c.hasState) { el.checked = !!patch.checked; stateChanged = true; }
       ['fill', 'stroke', 'color'].forEach(function (k) {
         if (k in patch) { el[k] = normHex(patch[k]); styleChanged = true; }
+      });
+      if ('r' in patch && c.radius) el.r = normR(patch.r);
+      ['flipH', 'flipV'].forEach(function (k) {
+        if (k in patch) { el[k] = !!patch[k]; styleChanged = true; }
       });
       this._geom(el);
       if (textChanged || stateChanged) this._refreshNode(el);
@@ -534,6 +571,32 @@
         if (el) { self._patch(el, patch); any = true; }
       });
       if (any) this.cb.onChange(tag || null, 'update');
+    }
+
+    /* Espelha a seleção em torno do próprio retângulo envolvente (eixo 'h' ou 'v').
+     * Os elementos trocam de lado, cada um alterna seu estado espelhado e os raios
+     * dos cantos são trocados, de modo que r sempre descreve o que se vê. O texto não é invertido. */
+    flipSelected(axis) {
+      var els = this.selectedElements();
+      if (!els.length) return false;
+      var horiz = axis !== 'v', self = this;
+      var minX = Infinity, minY = Infinity, maxR = -Infinity, maxB = -Infinity;
+      els.forEach(function (e) {
+        minX = Math.min(minX, e.x); minY = Math.min(minY, e.y);
+        maxR = Math.max(maxR, e.x + e.w); maxB = Math.max(maxB, e.y + e.h);
+      });
+      els.forEach(function (e) {
+        if (horiz) { e.x = minX + maxR - (e.x + e.w); e.flipH = !e.flipH; }
+        else { e.y = minY + maxB - (e.y + e.h); e.flipV = !e.flipV; }
+        if (e.r) e.r = horiz ? [e.r[1], e.r[0], e.r[3], e.r[2]] : [e.r[3], e.r[2], e.r[1], e.r[0]];
+        var node = self.nodes.get(e.id);
+        self._geom(e);
+        if (node) applyStyle(node, e);
+      });
+      this.cb.onGeometry();
+      this.cb.onChange(null, 'flip');
+      this.announce(els.length === 1 ? 'Elemento espelhado na ' + (horiz ? 'horizontal' : 'vertical') + '.' : els.length + ' elementos espelhados na ' + (horiz ? 'horizontal' : 'vertical') + '.');
+      return true;
     }
 
     /* ---------- edição de texto ---------- */
@@ -589,6 +652,7 @@
       if (mod && lk === 'd') { this.duplicateSelected(); return true; }
       if (mod && key === ']') { this.bringToFront(); return true; }
       if (mod && key === '[') { this.sendToBack(); return true; }
+      if (e.shiftKey && !mod && !e.altKey && (lk === 'h' || lk === 'v')) { this.flipSelected(lk); return true; }
       if (key.indexOf('Arrow') === 0 && !mod) {
         var step = e.shiftKey ? 10 : (this.snap ? GRID : 1);
         var dx = key === 'ArrowLeft' ? -step : key === 'ArrowRight' ? step : 0;
@@ -844,6 +908,18 @@
     ctx.closePath();
   }
 
+  /* Retângulo com raios individuais [sup.esq., sup.dir., inf.dir., inf.esq.] */
+  function rrect(ctx, x, y, w, hh, r) {
+    var tl = r[0], tr = r[1], br = r[2], bl = r[3];
+    ctx.beginPath();
+    ctx.moveTo(x + tl, y);
+    ctx.arcTo(x + w, y, x + w, y + hh, tr);
+    ctx.arcTo(x + w, y + hh, x, y + hh, br);
+    ctx.arcTo(x, y + hh, x, y, bl);
+    ctx.arcTo(x, y, x + w, y, tl);
+    ctx.closePath();
+  }
+
   function truncate(ctx, text, maxW) {
     text = String(text || '');
     if (maxW <= 0) return '';
@@ -891,6 +967,11 @@
     var mark = el.stroke || txt;          // ícones e marcas internas
     var bg = el.fill || '';
     var customText = !!(el.fill || el.color);
+    var fh = !!el.flipH, fv = !!el.flipV;
+    /* raios do caminho (2px de borda: o traço fica centrado a 1px da borda externa) */
+    var R = radiusOf(el).map(function (v) { return Math.max(0, v - 1); });
+    var LA = fh ? 'right' : 'left';       // alinhamento do texto à "esquerda" lógica
+    function X(off) { return fh ? w - off : off; }
     ctx.save();
     ctx.translate(el.x, el.y);
     ctx.beginPath(); ctx.rect(0, 0, w, hh); ctx.clip();
@@ -898,75 +979,78 @@
     ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
     var t = el.text || '';
 
+    function path(r) { rrect(ctx, 1, 1, w - 2, hh - 2, typeof r === 'number' ? [r, r, r, r] : r); }
     function box(def, r) {
       var col = bg || def;
       if (!col) return;
-      rr(ctx, 1, 1, w - 2, hh - 2, r);
+      path(r);
       ctx.fillStyle = col; ctx.fill();
       ctx.fillStyle = txt;
     }
+    function outline(r) { ctx.strokeStyle = line; path(r); ctx.stroke(); }
 
     switch (el.type) {
       case 'container':
-        box('', 8);
-        ctx.strokeStyle = line; rr(ctx, 1, 1, w - 2, hh - 2, 8); ctx.stroke();
+        box('', R); outline(R);
         if (t) {
-          ctx.font = '600 13px ' + FONT; ctx.textBaseline = 'top';
-          ctx.fillText(truncate(ctx, firstLine(t), w - 28), 14, 9);
+          ctx.font = '600 13px ' + FONT; ctx.textBaseline = fv ? 'bottom' : 'top'; ctx.textAlign = LA;
+          ctx.fillText(truncate(ctx, firstLine(t), w - 28), X(14), fv ? hh - 9 : 9);
         }
         break;
       case 'button':
-        box(FILL, 8);
-        ctx.strokeStyle = line; rr(ctx, 1, 1, w - 2, hh - 2, 8); ctx.stroke();
+        box(FILL, R); outline(R);
         ctx.fillStyle = txt; ctx.font = '600 14px ' + FONT; ctx.textAlign = 'center';
         ctx.fillText(truncate(ctx, firstLine(t), w - 28), w / 2, hh / 2 + 0.5);
         break;
       case 'input':
-        box(PAPER, 6);
-        ctx.strokeStyle = line; rr(ctx, 1, 1, w - 2, hh - 2, 6); ctx.stroke();
-        ctx.fillStyle = customText ? txt : MUTED; ctx.font = '14px ' + FONT;
-        ctx.fillText(truncate(ctx, firstLine(t), w - 28), 14, hh / 2 + 0.5);
+        box(PAPER, R); outline(R);
+        ctx.fillStyle = customText ? txt : MUTED; ctx.font = '14px ' + FONT; ctx.textAlign = LA;
+        ctx.fillText(truncate(ctx, firstLine(t), w - 28), X(14), hh / 2 + 0.5);
         break;
       case 'navbar':
-        ctx.fillStyle = bg || FILL; ctx.fillRect(1, 1, w - 2, hh - 2);
-        ctx.strokeStyle = line; ctx.strokeRect(1, 1, w - 2, hh - 2);
-        drawHamburger(ctx, 14, hh / 2 - 12, 24, 2, mark);
-        ctx.fillStyle = txt; ctx.font = '600 16px ' + FONT;
-        ctx.fillText(truncate(ctx, firstLine(t), w - 14 - 24 - 16 - 14), 54, hh / 2 + 0.5);
+        box(FILL, R); outline(R);
+        drawHamburger(ctx, fh ? w - 14 - 24 : 14, hh / 2 - 12, 24, 2, mark);
+        ctx.fillStyle = txt; ctx.font = '600 16px ' + FONT; ctx.textAlign = LA;
+        ctx.fillText(truncate(ctx, firstLine(t), w - 14 - 24 - 16 - 14), X(54), hh / 2 + 0.5);
         break;
       case 'hamburger': {
-        box('', 8);
-        ctx.strokeStyle = line; rr(ctx, 1, 1, w - 2, hh - 2, 8); ctx.stroke();
+        box('', R); outline(R);
         var inner = Math.min(w, hh) - 4 - 12;
         if (inner > 0) drawHamburger(ctx, w / 2 - inner / 2, hh / 2 - inner / 2, inner, 2, mark);
         break;
       }
       case 'image':
-        ctx.fillStyle = bg || SOFT; ctx.fillRect(1, 1, w - 2, hh - 2);
-        ctx.strokeStyle = line; ctx.strokeRect(1, 1, w - 2, hh - 2);
+        box(SOFT, R);
+        ctx.save();
+        path(R); ctx.clip();
+        ctx.strokeStyle = line;
         ctx.beginPath(); ctx.moveTo(1, 1); ctx.lineTo(w - 1, hh - 1); ctx.moveTo(w - 1, 1); ctx.lineTo(1, hh - 1); ctx.stroke();
+        ctx.restore();
+        outline(R);
         break;
-      case 'text':
-        box('', 4);
-        ctx.fillStyle = txt; ctx.font = '14px ' + FONT; ctx.textBaseline = 'top';
-        wrapLines(ctx, t, w - 8).forEach(function (ln, i) { ctx.fillText(ln, 4, 4 + i * 20 + 3); });
+      case 'text': {
+        box('', R);
+        ctx.fillStyle = txt; ctx.font = '14px ' + FONT; ctx.textBaseline = 'top'; ctx.textAlign = LA;
+        var tl = wrapLines(ctx, t, w - 8), y00 = fv ? hh - 4 - tl.length * 20 : 4;
+        tl.forEach(function (ln, i) { ctx.fillText(ln, X(4), y00 + i * 20 + 3); });
         break;
+      }
       case 'list': {
-        box(PAPER, 8);
-        ctx.strokeStyle = line; rr(ctx, 1, 1, w - 2, hh - 2, 8); ctx.stroke();
+        box(PAPER, R); outline(R);
         var rows = String(t).split('\n');
         ctx.save();
-        rr(ctx, 2, 2, w - 4, hh - 4, 7); ctx.clip();
+        rrect(ctx, 2, 2, w - 4, hh - 4, R.map(function (v) { return Math.max(0, v - 1); })); ctx.clip();
         rows.forEach(function (ln, i) {
-          var y0 = 2 + i * 32;
-          if (y0 > hh) return;
+          var y0 = fv ? hh - 2 - (i + 1) * 32 : 2 + i * 32;
+          if (fv ? y0 + 32 < 0 : y0 > hh) return;
           ctx.lineWidth = 2; ctx.strokeStyle = mark;
-          rr(ctx, 13, y0 + 11, 8, 8, 2); ctx.stroke();
-          ctx.fillStyle = txt; ctx.font = '14px ' + FONT; ctx.textBaseline = 'middle';
-          ctx.fillText(truncate(ctx, ln, w - 12 - 22 - 24 - 12), 34, y0 + 16.5);
+          rr(ctx, fh ? w - 21 : 13, y0 + 11, 8, 8, 2); ctx.stroke();
+          ctx.fillStyle = txt; ctx.font = '14px ' + FONT; ctx.textBaseline = 'middle'; ctx.textAlign = LA;
+          ctx.fillText(truncate(ctx, ln, w - 12 - 22 - 24 - 12), X(34), y0 + 16.5);
           if (i < rows.length - 1) {
+            var ly = fv ? y0 + 0.5 : y0 + 31.5;
             ctx.lineWidth = 1; ctx.strokeStyle = LIGHT;
-            ctx.beginPath(); ctx.moveTo(2, y0 + 31.5); ctx.lineTo(w - 2, y0 + 31.5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(2, ly); ctx.lineTo(w - 2, ly); ctx.stroke();
           }
         });
         ctx.restore();
@@ -974,9 +1058,10 @@
       }
       case 'toggle': {
         box('', 6);
-        var sx = w - 46, sy = (hh - 24) / 2;
-        ctx.fillStyle = txt; ctx.font = '14px ' + FONT;
-        ctx.fillText(truncate(ctx, firstLine(t), sx - 12), 2, hh / 2 + 0.5);
+        var sx = fh ? 2 : w - 46, sy = (hh - 24) / 2;
+        ctx.fillStyle = txt; ctx.font = '14px ' + FONT; ctx.textAlign = LA;
+        ctx.fillText(truncate(ctx, firstLine(t), w - 58), X(2), hh / 2 + 0.5);
+        ctx.textAlign = 'left';
         ctx.strokeStyle = mark; ctx.lineWidth = 2;
         rr(ctx, sx + 1, sy + 1, 42, 22, 11);
         if (el.checked) { ctx.fillStyle = mark; ctx.fill(); }
@@ -987,15 +1072,15 @@
       }
       case 'checkbox': {
         box('', 6);
-        var by = (hh - 20) / 2;
-        rr(ctx, 2 + 1, by + 1, 18, 18, 4); ctx.fillStyle = bg || PAPER; ctx.fill();
+        var by = (hh - 20) / 2, bx = fh ? w - 22 : 2;
+        rr(ctx, bx + 1, by + 1, 18, 18, 4); ctx.fillStyle = bg || PAPER; ctx.fill();
         ctx.strokeStyle = mark; ctx.lineWidth = 2; ctx.stroke();
         if (el.checked) {
           ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.moveTo(2 + 5, by + 10.5); ctx.lineTo(2 + 8.5, by + 14); ctx.lineTo(2 + 15, by + 6.5); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(bx + 5, by + 10.5); ctx.lineTo(bx + 8.5, by + 14); ctx.lineTo(bx + 15, by + 6.5); ctx.stroke();
         }
-        ctx.fillStyle = txt; ctx.font = '14px ' + FONT;
-        ctx.fillText(truncate(ctx, firstLine(t), w - 34), 32, hh / 2 + 0.5);
+        ctx.fillStyle = txt; ctx.font = '14px ' + FONT; ctx.textAlign = LA;
+        ctx.fillText(truncate(ctx, firstLine(t), w - 34), X(32), hh / 2 + 0.5);
         break;
       }
       case 'divider':
@@ -1096,6 +1181,10 @@
     MIN_SIZE: MIN_SIZE,
     uid: uid,
     normHex: normHex,
+    normR: normR,
+    radiusOf: radiusOf,
+    maxRadius: maxRadius,
+    DEFAULT_RADIUS: DEFAULT_RADIUS,
     contrast: contrast,
     autoText: autoText,
     colorInfo: colorInfo,

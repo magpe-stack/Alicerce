@@ -70,6 +70,8 @@
     <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><path d="M7.5 11v.01M10 7.5v.01M14.5 7.5v.01"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
     <symbol id="i-screen" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6"/></symbol>
+    <symbol id="i-flip-h" viewBox="0 0 24 24"><path d="M12 3v18" stroke-dasharray="2 3"/><path d="M9 7L3 12l6 5z"/><path d="M15 7l6 5-6 5z"/></symbol>
+    <symbol id="i-flip-v" viewBox="0 0 24 24"><path d="M3 12h18" stroke-dasharray="2 3"/><path d="M7 9l5-6 5 6z"/><path d="M7 15l5 6 5-6z"/></symbol>
     <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
     <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
 
@@ -199,6 +201,8 @@
       <button type="button" id="el-front" class="icon-btn" data-action="el-front" aria-label="Trazer para frente" title="Trazer para frente (Ctrl+])" disabled><svg class="icon" aria-hidden="true"><use href="#i-front"/></svg></button>
       <button type="button" id="el-back" class="icon-btn" data-action="el-back" aria-label="Enviar para trás" title="Enviar para trás (Ctrl+[)" disabled><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg></button>
       <button type="button" id="el-edit" class="icon-btn" data-action="el-edit" aria-label="Editar texto do elemento" title="Editar texto (Enter ou duplo clique)" disabled><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+      <button type="button" id="el-flip-h" class="icon-btn" data-action="el-flip-h" aria-label="Espelhar na horizontal" aria-pressed="false" title="Espelhar na horizontal (Shift+H)" disabled><svg class="icon" aria-hidden="true"><use href="#i-flip-h"/></svg></button>
+      <button type="button" id="el-flip-v" class="icon-btn" data-action="el-flip-v" aria-label="Espelhar na vertical" aria-pressed="false" title="Espelhar na vertical (Shift+V)" disabled><svg class="icon" aria-hidden="true"><use href="#i-flip-v"/></svg></button>
       <button type="button" id="el-colors" class="icon-btn" data-action="el-colors" aria-label="Cores do elemento" title="Cores (fundo, borda, texto)" disabled><svg class="icon" aria-hidden="true"><use href="#i-palette"/></svg></button>
       <button type="button" id="el-props" class="icon-btn only-narrow" data-action="el-props" aria-label="Propriedades do elemento" aria-expanded="false" aria-controls="inspector" title="Propriedades" disabled><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg></button>
       <button type="button" id="el-delete" class="icon-btn" data-action="el-delete" aria-label="Excluir elemento" title="Excluir (Delete)" disabled><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
@@ -256,6 +260,30 @@
           <label for="insp-checked" id="insp-checked-label">Marcado</label>
         </div>
       </div>
+      <section id="insp-corners" class="insp-corners" aria-labelledby="corners-title" hidden>
+        <h3 id="corners-title" class="insp-sub">Cantos</h3>
+        <div id="radius-presets" class="radius-presets" role="group" aria-label="Predefinições de cantos"></div>
+        <div class="field">
+          <label for="radius-range">Arredondamento: <output id="radius-out" for="radius-range">0 px</output></label>
+          <input type="range" id="radius-range" min="0" max="100" step="1" value="0">
+        </div>
+        <div class="field field-check" id="corners-indep-field">
+          <input id="corners-indep" type="checkbox">
+          <label for="corners-indep">Cantos independentes</label>
+        </div>
+        <div id="corners-grid" class="corners-grid" hidden>
+          <div class="field-row">
+            <div class="field"><label for="corner-tl">Sup. esq.</label><input id="corner-tl" type="number" min="0" step="1" inputmode="numeric"></div>
+            <div class="field"><label for="corner-tr">Sup. dir.</label><input id="corner-tr" type="number" min="0" step="1" inputmode="numeric"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="corner-bl">Inf. esq.</label><input id="corner-bl" type="number" min="0" step="1" inputmode="numeric"></div>
+            <div class="field"><label for="corner-br">Inf. dir.</label><input id="corner-br" type="number" min="0" step="1" inputmode="numeric"></div>
+          </div>
+        </div>
+        <div class="corner-preview-wrap"><div id="corner-preview" class="corner-preview" aria-hidden="true"></div></div>
+        <button type="button" class="btn btn-secondary" id="corners-reset">Cantos padrão</button>
+      </section>
       <section id="insp-colors" class="insp-colors" aria-labelledby="colors-title" hidden>
         <h3 id="colors-title" class="insp-sub">Cores</h3>
         <fieldset class="seg" id="color-targets">
@@ -442,7 +470,7 @@
     </div>
     <div class="about-hero">
       <img src="./icon-192.png" alt="" width="72" height="72">
-      <p><strong>Alicerce</strong><br><span class="muted">Wireframes de baixa fidelidade — versão 1.0.0</span></p>
+      <p><strong>Alicerce</strong><br><span class="muted">Wireframes de baixa fidelidade — versão 1.2.0</span></p>
     </div>
 
     <h3>Propósito</h3>
@@ -463,6 +491,7 @@
       <div><dt>Ctrl + D</dt><dd>Duplicar</dd></div>
       <div><dt>Ctrl + C / X / V</dt><dd>Copiar, recortar e colar</dd></div>
       <div><dt>Ctrl + ] / [</dt><dd>Trazer para frente / enviar para trás</dd></div>
+      <div><dt>Shift + H / V</dt><dd>Espelhar na horizontal / vertical</dd></div>
       <div><dt>Ctrl + A</dt><dd>Selecionar tudo</dd></div>
       <div><dt>Ctrl + Z / Y</dt><dd>Desfazer / refazer</dd></div>
       <div><dt>Ctrl + S</dt><dd>Salvar no disco (Shift: Salvar como)</dd></div>

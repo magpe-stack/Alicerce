@@ -29,6 +29,7 @@ O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estrut
 
 - **Projetos e telas:** vários projetos, cada um com várias telas (Splash, Home, Menu, Perfil…) em abas. Criar, renomear, duplicar e excluir.
 - **Prancheta híbrida:** grade magnética (liga/desliga), moldura **Mobile 360×800** ou **Desktop 1280×800**, zoom (botões, `Ctrl`+roda do mouse, pinça no toque) e rolagem.
+- **Espelhar e cantos:** Flip horizontal/vertical (`Shift+H`/`Shift+V`) e controle de cantos retos ou arredondados (predefinições, pílula e cantos independentes), com destaque para containers.
 - **Edição completa:** arrastar, redimensionar pelas 8 alças, duplicar, excluir, trazer para frente / enviar para trás, editar texto com duplo clique (ou duplo toque), seleção múltipla (`Shift`/`Ctrl`+clique).
 - **11 componentes de baixa fidelidade:** Container/Card, Botão, Campo de input, Cabeçalho/Navbar, Menu hambúrguer, Imagem placeholder (caixa com X), Bloco de texto, Lista, Toggle, Checkbox e Divisor. Clique para inserir ou arraste (mouse) para a prancheta.
 - **Painel de propriedades:** texto, posição (X/Y), tamanho e estado (ligado/marcado) do elemento selecionado.
@@ -62,6 +63,23 @@ Selecione um ou mais elementos e abra **Cores** (ícone de paleta na barra, ou a
 **Texto automático e contraste:** ao escolher um fundo, o texto passa sozinho para **preto** (fundos claros) ou **branco** (fundos escuros), sempre o de maior contraste. Se você definir manualmente uma cor de texto, o painel mostra a taxa de contraste texto/fundo com nível (**AAA ✓**, **AA ✓**, **só para texto grande ⚠**, **abaixo do mínimo WCAG ✗**) — sempre com texto e símbolo, nunca só cor.
 
 As cores entram em **tudo**: PNG, impressão, `.json`, backup, copiar/colar, duplicar e desfazer/refazer (aplicar uma cor a vários elementos é um único passo de histórico). Cores inválidas em arquivos importados são descartadas.
+
+### Espelhar e cantos
+
+**Espelhar (Flip).** Selecione um ou mais elementos e use os botões **Espelhar na horizontal** (`Shift+H`) e **Espelhar na vertical** (`Shift+V`) na barra.
+
+- Com vários elementos, o grupo é espelhado em torno do próprio retângulo envolvente: eles trocam de lado, mantendo a composição.
+- Cada elemento também é invertido por dentro (ícone do menu, bolinhas da lista, caixa do checkbox, chave do toggle passam para o outro lado; o texto alinha à direita), mas **o texto nunca é escrito de trás para frente**.
+- Os raios dos cantos acompanham o espelhamento. O botão fica marcado quando todos os selecionados já estão espelhados; apertar de novo desfaz.
+
+**Cantos retos e arredondados.** Disponível em Container, Botão, Campo de input, Navbar, Menu hambúrguer, Imagem, Bloco de texto e Lista (seção *Cantos* do painel).
+
+1. **Predefinições:** Reto (0), Suave (4), Médio (8), Grande (16) e Pílula (máximo possível, acompanha o tamanho do elemento).
+2. **Controle deslizante** de 0 até o máximo do elemento (metade da menor lateral).
+3. **Cantos independentes** (um elemento por vez): define separadamente superior esquerdo, superior direito, inferior esquerdo e inferior direito.
+4. **Cantos padrão** volta ao visual original de cada tipo.
+
+Como no CSS, raios que somados passam do tamanho do lado são reduzidos proporcionalmente. Tudo vale também para PNG, impressão, `.json`, copiar/colar e desfazer/refazer.
 
 ### Menu (☰)
 
@@ -116,6 +134,7 @@ Quando o Chrome permite a instalação, aparece o botão **Instalar** (no cabeç
 | `Ctrl+D` | Duplicar |
 | `Ctrl+C` / `X` / `V` | Copiar / recortar / colar |
 | `Ctrl+]` / `Ctrl+[` | Trazer para frente / enviar para trás |
+| `Shift+H` / `Shift+V` | Espelhar na horizontal / vertical |
 | `Ctrl+A` | Selecionar tudo |
 | `Ctrl+Z` / `Ctrl+Y` | Desfazer / refazer (`Ctrl+Shift+Z` também refaz) |
 | `Ctrl+S` / `Ctrl+Shift+S` | Salvar / Salvar como |
@@ -190,7 +209,9 @@ Ao publicar uma nova versão dos arquivos, **incremente `CACHE_VERSION` em `sw.j
       "elements": [
         { "id": "uuid", "type": "button", "x": 40, "y": 120, "w": 140, "h": 44,
           "text": "Entrar", "checked": false,
-          "fill": "#29243C", "stroke": "", "color": "" }   // cores: "#RRGGBB" ou "" (padrão)
+          "fill": "#29243C", "stroke": "", "color": "",    // cores: "#RRGGBB" ou "" (padrão)
+          "flipH": false, "flipV": false,
+          "r": null }   // cantos: null (padrão do tipo) ou [sup.esq., sup.dir., inf.dir., inf.esq.] em px, 0–999
       ]
     }
   ]

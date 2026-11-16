@@ -162,7 +162,10 @@
           checked: !!e.checked,
           fill: E.normHex(e.fill),
           stroke: E.normHex(e.stroke),
-          color: E.normHex(e.color)
+          color: E.normHex(e.color),
+          flipH: !!e.flipH,
+          flipV: !!e.flipV,
+          r: COMPONENTS[e.type].radius ? E.normR(e.r) : null
         };
       });
       return { id: id, name: str(sc.name, 60, 'Tela ' + (i + 1)), elements: els };
@@ -439,6 +442,8 @@
     setDisabled('el-edit', !(single && COMPONENTS[single.type].editable));
     setDisabled('el-props', n < 1);
     setDisabled('el-colors', n < 1);
+    setDisabled('el-flip-h', n < 1);
+    setDisabled('el-flip-v', n < 1);
     if (n < 1) openInspector(false);
     syncInspector(true);
     setTimeout(revealSelection, 60);
@@ -452,6 +457,8 @@
       empty.hidden = false;
       empty.textContent = els.length > 1 ? els.length + ' elementos selecionados. Use as ferramentas da barra para duplicar, copiar, ordenar ou excluir, ou aplique cores abaixo.' : 'Selecione um elemento na prancheta para editar suas propriedades e cores.';
       syncColors(els, force);
+      syncCorners(els, force);
+      syncFlipButtons(els);
       return;
     }
     var el = els[0], c = COMPONENTS[el.type];
@@ -469,6 +476,131 @@
     set('insp-h', Math.round(el.h));
     $('insp-checked').checked = !!el.checked;
     syncColors(els, force);
+    syncCorners(els, force);
+    syncFlipButtons(els);
+  }
+
+  /* ---------- Espelhar (Flip) ---------- */
+  function syncFlipButtons(els) {
+    var h = els.length > 0 && els.every(function (e) { return e.flipH; });
+    var v = els.length > 0 && els.every(function (e) { return e.flipV; });
+    $('el-flip-h').setAttribute('aria-pressed', h ? 'true' : 'false');
+    $('el-flip-v').setAttribute('aria-pressed', v ? 'true' : 'false');
+  }
+
+  /* ---------- Cantos retos e arredondados ---------- */
+  var RADIUS_PRESETS = [[0, 'Reto'], [4, 'Suave'], [8, 'Médio'], [16, 'Grande'], [999, 'Pílula']];
+  var cornersIndep = false, cornersKey = '';
+
+  function cornerIcon(r) {
+    var ns = 'http://www.w3.org/2000/svg';
+    var sv = document.createElementNS(ns, 'svg');
+    sv.setAttribute('viewBox', '0 0 24 24');
+    sv.setAttribute('aria-hidden', 'true');
+    var p = document.createElementNS(ns, 'path');
+    var k = Math.min(r, 14);   // arco do canto superior esquerdo
+    p.setAttribute('d', 'M3 21V' + (3 + k) + (k ? 'A' + k + ' ' + k + ' 0 0 1 ' + (3 + k) + ' 3' : '') + 'H21');
+    sv.appendChild(p);
+    return sv;
+  }
+
+  function cornerEls(els) { return els.filter(function (e) { return COMPONENTS[e.type].radius; }); }
+
+  function syncCorners(els, force) {
+    var sec = $('insp-corners'), list = cornerEls(els);
+    if (!list.length) { sec.hidden = true; return; }
+    sec.hidden = false;
+    var key = list.map(function (e) { return e.id; }).join(',');
+    var eff = list.map(function (e) { return E.radiusOf(e); });
+    var uniform = null;
+    var allEq = eff.every(function (r) { return r.every(function (v) { return v === r[0]; }); });
+    if (allEq && eff.every(function (r) { return r[0] === eff[0][0]; })) uniform = eff[0][0];
+    if (key !== cornersKey) {
+      cornersKey = key;
+      cornersIndep = list.length === 1 && uniform === null;
+    }
+    var max = Math.min.apply(null, list.map(E.maxRadius));
+    var range = $('radius-range');
+    range.max = max;
+    if (force || document.activeElement !== range) range.value = uniform === null ? 0 : Math.min(Math.round(uniform), max);
+    $('radius-out').textContent = uniform === null ? 'vários' : (uniform >= max ? 'máx. (' + max + ' px)' : Math.round(uniform) + ' px');
+    range.setAttribute('aria-valuetext', $('radius-out').textContent);
+
+    document.querySelectorAll('.radius-btn').forEach(function (b) {
+      var v = Number(b.dataset.r), want = Math.min(v, max);
+      b.setAttribute('aria-pressed', uniform !== null && Math.round(uniform) === want ? 'true' : 'false');
+    });
+
+    var single = list.length === 1;
+    $('corners-indep-field').hidden = !single;
+    $('corners-indep').checked = single && cornersIndep;
+    $('corners-grid').hidden = !(single && cornersIndep);
+    if (single) {
+      var r = eff[0];
+      [['tl', 0], ['tr', 1], ['br', 2], ['bl', 3]].forEach(function (c) {
+        var f = $('corner-' + c[0]);
+        f.max = maxCorner(list[0]);
+        if (force || document.activeElement !== f) f.value = Math.round(r[c[1]]);
+      });
+    }
+    // pré-visualização com proporção real do elemento
+    var ref = list[0], scale = Math.min(120 / ref.w, 64 / ref.h);
+    var pv = $('corner-preview');
+    pv.style.width = Math.max(24, ref.w * scale) + 'px';
+    pv.style.height = Math.max(24, ref.h * scale) + 'px';
+    pv.style.borderRadius = eff[0].map(function (v) { return (v * scale) + 'px'; }).join(' ');
+  }
+  function maxCorner(el) { return Math.max(el.w, el.h); }
+
+  function applyRadius(arr, tag, msg) {
+    var ids = cornerEls(engine.selectedElements()).map(function (e) { return e.id; });
+    if (!ids.length) return;
+    engine.updateMany(ids, { r: arr }, tag || null);
+    if (msg) announce(msg);
+  }
+
+  function buildCorners() {
+    var box = $('radius-presets');
+    RADIUS_PRESETS.forEach(function (p) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'radius-btn';
+      b.dataset.r = p[0];
+      b.setAttribute('aria-pressed', 'false');
+      b.setAttribute('aria-label', 'Cantos ' + p[1].toLowerCase());
+      b.title = p[0] === 999 ? 'Pílula (máximo)' : p[1] + ' — ' + p[0] + ' px';
+      b.appendChild(cornerIcon(p[0] === 999 ? 14 : p[0]));
+      b.appendChild(document.createTextNode(p[1]));
+      box.appendChild(b);
+    });
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('.radius-btn');
+      if (!b) return;
+      var v = Number(b.dataset.r);
+      applyRadius([v, v, v, v], null, 'Cantos: ' + b.textContent.toLowerCase() + '.');
+    });
+    var range = $('radius-range');
+    range.addEventListener('input', function () {
+      var v = Number(range.value), max = Number(range.max);
+      var s = v >= max ? 999 : v;
+      applyRadius([s, s, s, s], '~radius');
+    });
+    $('corners-indep').addEventListener('change', function (e) {
+      cornersIndep = e.target.checked;
+      syncCorners(engine.selectedElements(), true);
+    });
+    ['tl', 'tr', 'br', 'bl'].forEach(function (k, i) {
+      var f = $('corner-' + k);
+      f.addEventListener('input', function () {
+        if (f.value === '' || !isFinite(Number(f.value))) return;
+        var els = cornerEls(engine.selectedElements());
+        if (els.length !== 1) return;
+        var r = E.radiusOf(els[0]).slice();
+        r[i] = Math.max(0, Math.min(999, Math.round(Number(f.value))));
+        applyRadius(r, '~radius-corners');
+      });
+    });
+    $('corners-reset').addEventListener('click', function () { applyRadius(null, null, 'Cantos restaurados ao padrão.'); });
   }
 
   /* ---------- Cores ---------- */
@@ -1398,6 +1530,8 @@
     'el-front': function () { engine.bringToFront(); },
     'el-back': function () { engine.sendToBack(); },
     'el-edit': function () { if (engine.selection.length === 1) engine.startEdit(engine.selection[0]); },
+    'el-flip-h': function () { engine.flipSelected('h'); },
+    'el-flip-v': function () { engine.flipSelected('v'); },
     'el-colors': openColors,
     'el-props': function () { openInspector(!document.body.classList.contains('inspector-open')); },
     'el-delete': function () { engine.deleteSelected(); },
@@ -1619,6 +1753,7 @@
 
     buildPalette();
     buildSwatches();
+    buildCorners();
     bindInspector();
     bindClipboardEvents();
     bindUI();
