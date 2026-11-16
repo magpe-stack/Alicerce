@@ -76,6 +76,12 @@ As cores entram em **tudo**: PNG, impressão, `.json`, backup, copiar/colar, dup
 - **Slider**, **Barra de progresso** e **Barra de rolagem** mostram um valor fixo de exemplo (40% ou 60%); com o Flip, o preenchimento vai para o outro lado.
 - Cores e cantos funcionam em quase todos; Badge e Chip já nascem em formato de pílula.
 
+### Selecionar com o mouse e travar elementos
+
+**Seleção por retângulo.** Com o mouse, arraste em uma área vazia da prancheta para desenhar um retângulo: todo elemento tocado por ele é selecionado, ao vivo. Segure `Shift` ou `Ctrl` para somar à seleção atual. Um clique no vazio limpa a seleção. O botão **Selecionar tudo** da barra (ou `Ctrl+A`) seleciona todos os elementos da tela. Para mover a visão da prancheta, use **barra de espaço + arrastar**, o **botão do meio** do mouse, ou arraste com o dedo no toque.
+
+**Cadeado.** Selecione um ou mais elementos e use o botão de cadeado da barra, a caixa *Travar posição e tamanho* do painel de propriedades, ou `Shift+L`. O elemento travado ganha um selo de cadeado e fica fixo no lugar: não move (mouse, setas ou campos X/Y), não redimensiona, não é espelhado e não é excluído por engano. Texto, cores e cantos continuam editáveis. Em uma seleção mista, só os destravados se movem; ao excluir, os travados permanecem. Duplicar ou colar gera cópias destravadas. O estado é salvo no projeto e entra no desfazer/refazer. O selo não aparece no PNG nem na impressão.
+
 ### Espelhar e cantos
 
 **Espelhar (Flip).** Selecione um ou mais elementos e use os botões **Espelhar na horizontal** (`Shift+H`) e **Espelhar na vertical** (`Shift+V`) na barra.
@@ -147,6 +153,7 @@ Quando o Chrome permite a instalação, aparece o botão **Instalar** (no cabeç
 | `Ctrl+C` / `X` / `V` | Copiar / recortar / colar |
 | `Ctrl+]` / `Ctrl+[` | Trazer para frente / enviar para trás |
 | `Shift+H` / `Shift+V` | Espelhar na horizontal / vertical |
+| `Shift+L` | Travar / destravar elemento (cadeado) |
 | `Ctrl+A` | Selecionar tudo |
 | `Ctrl+Z` / `Ctrl+Y` | Desfazer / refazer (`Ctrl+Shift+Z` também refaz) |
 | `Ctrl+S` / `Ctrl+Shift+S` | Salvar / Salvar como |
@@ -223,6 +230,7 @@ Ao publicar uma nova versão dos arquivos, **incremente `CACHE_VERSION` em `sw.j
           "text": "Entrar", "checked": false,
           "fill": "#29243C", "stroke": "", "color": "",    // cores: "#RRGGBB" ou "" (padrão)
           "flipH": false, "flipV": false,
+          "locked": false,        // cadeado: true impede mover, redimensionar, espelhar e excluir
           "r": null }   // cantos: null (padrão do tipo) ou [sup.esq., sup.dir., inf.dir., inf.esq.] em px, 0–999
       ]
     }

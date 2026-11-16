@@ -165,6 +165,7 @@
           color: E.normHex(e.color),
           flipH: !!e.flipH,
           flipV: !!e.flipV,
+          locked: !!e.locked,
           r: COMPONENTS[e.type].radius ? E.normR(e.r) : null
         };
       });
@@ -444,6 +445,7 @@
     setDisabled('el-colors', n < 1);
     setDisabled('el-flip-h', n < 1);
     setDisabled('el-flip-v', n < 1);
+    setDisabled('el-lock', n < 1);
     if (n < 1) openInspector(false);
     syncInspector(true);
     setTimeout(revealSelection, 60);
@@ -459,6 +461,7 @@
       syncColors(els, force);
       syncCorners(els, force);
       syncFlipButtons(els);
+      syncLock(els);
       return;
     }
     var el = els[0], c = COMPONENTS[el.type];
@@ -474,10 +477,27 @@
     set('insp-y', Math.round(el.y));
     set('insp-w', Math.round(el.w));
     set('insp-h', Math.round(el.h));
+    ['x', 'y', 'w', 'h'].forEach(function (k) { $('insp-' + k).disabled = !!el.locked; });
     $('insp-checked').checked = !!el.checked;
     syncColors(els, force);
     syncCorners(els, force);
     syncFlipButtons(els);
+    syncLock(els);
+  }
+
+  /* ---------- Cadeado ---------- */
+  function syncLock(els) {
+    var n = els.length, all = n > 0 && els.every(function (e) { return e.locked; });
+    var some = els.some(function (e) { return e.locked; });
+    var btn = $('el-lock');
+    btn.setAttribute('aria-pressed', all ? 'true' : 'false');
+    btn.setAttribute('aria-label', all ? 'Destravar posição do elemento' : 'Travar posição do elemento');
+    btn.title = (all ? 'Destravar' : 'Travar') + ' posição (Shift+L)';
+    $('el-lock-use').setAttribute('href', all ? '#i-lock' : '#i-unlock');
+    $('insp-lock').hidden = n < 1;
+    var cb = $('insp-locked');
+    cb.checked = all;
+    cb.indeterminate = some && !all;
   }
 
   /* ---------- Espelhar (Flip) ---------- */
@@ -748,6 +768,7 @@
       });
       inp.addEventListener('change', function () { syncInspector(true); });
     });
+    $('insp-locked').addEventListener('change', function (ev) { engine.toggleLockSelected(ev.target.checked); });
     $('insp-checked').addEventListener('change', function (ev) {
       var el = single(); if (!el) return;
       engine.updateElement(el.id, { checked: ev.target.checked }, null);
@@ -1543,6 +1564,8 @@
     'el-front': function () { engine.bringToFront(); },
     'el-back': function () { engine.sendToBack(); },
     'el-edit': function () { if (engine.selection.length === 1) engine.startEdit(engine.selection[0]); },
+    'el-select-all': function () { engine.selectAll(); engine.ws.focus({ preventScroll: true }); },
+    'el-lock': function () { engine.toggleLockSelected(); },
     'el-flip-h': function () { engine.flipSelected('h'); },
     'el-flip-v': function () { engine.flipSelected('v'); },
     'el-colors': openColors,
@@ -1755,6 +1778,12 @@
         onSelection: updateSelectionUI,
         onGeometry: function () { syncInspector(false); },
         onZoom: onZoom,
+        onLocked: function (n, verb) {
+          var now = Date.now();
+          if (state.lockToastAt && now - state.lockToastAt < 1500) return;
+          state.lockToastAt = now;
+          toast((n === 1 ? 'Elemento travado' : n + ' elementos travados') + ': destrave o cadeado para ' + verb + '.', 'info');
+        },
         onAnnounce: announce
       }
     });

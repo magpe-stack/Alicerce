@@ -95,6 +95,7 @@
     if (el.fill || el.color) st.setProperty('--c-text', textColorOf(el)); else st.removeProperty('--c-text');
     node.classList.toggle('is-flip-h', !!el.flipH);
     node.classList.toggle('is-flip-v', !!el.flipV);
+    node.classList.toggle('is-locked', !!el.locked);
   }
 
   /* ------------------------------------------------------------------ cantos (raio) */
@@ -156,6 +157,7 @@
     if (t && c.editable) out += ': ' + t;
     if (c.hasState) out += el.checked ? ', ' + c.stateLabel.toLowerCase() : ', desativado';
     if (el.flipH || el.flipV) out += ', espelhado' + (el.flipH && el.flipV ? ' na horizontal e na vertical' : el.flipH ? ' na horizontal' : ' na vertical');
+    if (el.locked) out += ', travado';
     out += '. Posição ' + Math.round(el.x) + ', ' + Math.round(el.y) + '. Tamanho ' + Math.round(el.w) + ' por ' + Math.round(el.h) + '.';
     return out;
   }
@@ -393,7 +395,7 @@
       this.ws = opts.workspace;
       this.wrap = opts.wrap;
       this.stage = opts.stage;
-      this.cb = Object.assign({ onChange: noop, onSelection: noop, onGeometry: noop, onZoom: noop, onAnnounce: noop }, opts.callbacks || {});
+      this.cb = Object.assign({ onChange: noop, onSelection: noop, onGeometry: noop, onZoom: noop, onAnnounce: noop, onLocked: noop }, opts.callbacks || {});
       this.screen = null;
       this.viewport = 'mobile';
       this.zoom = 1;
@@ -470,13 +472,14 @@
     }
 
     _decorate() {
-      var sel = this.selection, single = sel.length === 1;
+      var sel = this.selection, single = sel.length === 1, self = this;
       this.nodes.forEach(function (node, id) {
         var on = sel.indexOf(id) > -1;
         node.classList.toggle('is-selected', on);
         node.setAttribute('aria-selected', on ? 'true' : 'false');
         var hs = node.querySelectorAll('.handle');
-        if (on && single) { if (!hs.length) addHandles(node); }
+        var locked = !!(self.find(id) || {}).locked;
+        if (on && single && !locked) { if (!hs.length) addHandles(node); }
         else hs.forEach(function (x) { x.remove(); });
       });
     }
@@ -570,7 +573,7 @@
         x = clamp(x, 0, Math.max(0, vp.w - w));
         y = clamp(y, 0, Math.max(0, vp.h - hgt));
       }
-      var el = { id: uid(), type: type, x: x, y: y, w: w, h: hgt, text: c.text || '', checked: false, fill: '', stroke: '', color: '', flipH: false, flipV: false, r: null };
+      var el = { id: uid(), type: type, x: x, y: y, w: w, h: hgt, text: c.text || '', checked: false, fill: '', stroke: '', color: '', flipH: false, flipV: false, r: null, locked: false };
       this.screen.elements.push(el);
       var node = buildNode(el);
       this.nodes.set(el.id, node);
@@ -584,15 +587,21 @@
 
     deleteSelected() {
       if (!this.selection.length) return;
-      var ids = this.selection.slice(), self = this;
+      var self = this;
+      var all = this.selection.slice();
+      var ids = all.filter(function (id) { var e = self.find(id); return e && !e.locked; });
+      var kept = all.filter(function (id) { return ids.indexOf(id) < 0; });
+      if (kept.length) this.cb.onLocked(kept.length, 'excluir');
+      if (!ids.length) return;
       this.screen.elements = this.screen.elements.filter(function (e) { return ids.indexOf(e.id) < 0; });
       ids.forEach(function (id) {
         var n = self.nodes.get(id);
         if (n) n.remove();
         self.nodes.delete(id);
       });
-      this.selection = [];
-      this.cb.onSelection([]);
+      this.selection = kept;
+      this._decorate();
+      this.cb.onSelection(kept.slice());
       this.cb.onChange(null, 'delete');
       this.announce(ids.length === 1 ? 'Elemento excluído.' : ids.length + ' elementos excluídos.');
       this.ws.focus({ preventScroll: true });
@@ -604,7 +613,7 @@
         var c = {
           id: uid(), type: e.type, text: e.text || '', checked: !!e.checked,
           fill: normHex(e.fill), stroke: normHex(e.stroke), color: normHex(e.color),
-          flipH: !!e.flipH, flipV: !!e.flipV, r: normR(e.r),
+          flipH: !!e.flipH, flipV: !!e.flipV, r: normR(e.r), locked: false,
           w: e.w, h: e.h, x: e.x + off, y: e.y + off
         };
         c.x = clamp(c.x, 0, Math.max(0, vp.w - c.w));
@@ -687,6 +696,9 @@
 
     _patch(el, patch) {
       var vp = this.vp, c = COMPONENTS[el.type], textChanged = false, stateChanged = false, styleChanged = false;
+      if ('locked' in patch) { el.locked = !!patch.locked; styleChanged = true; }
+      if (el.locked) patch = Object.assign({}, patch, { x: undefined, y: undefined, w: undefined, h: undefined });
+      ['x', 'y', 'w', 'h'].forEach(function (k) { if (patch[k] === undefined) delete patch[k]; });
       if ('w' in patch) el.w = Math.max(MIN_SIZE, Math.round(num(patch.w, el.w)));
       if ('h' in patch) el.h = Math.max(4, Math.round(num(patch.h, el.h)));
       if ('x' in patch) el.x = Math.round(clamp(num(patch.x, el.x), -el.w + 20, Math.max(20, vp.w - 20)));
@@ -729,11 +741,28 @@
       if (any) this.cb.onChange(tag || null, 'update');
     }
 
+    /* Cadeado: trava ou destrava a seleção. Se todos já estão travados, destrava; senão, trava todos. */
+    toggleLockSelected(force) {
+      var els = this.selectedElements();
+      if (!els.length) return false;
+      var on = typeof force === 'boolean' ? force : !els.every(function (e) { return e.locked; });
+      var self = this;
+      els.forEach(function (e) { self._patch(e, { locked: on }); });
+      this._decorate();
+      this.cb.onGeometry();
+      this.cb.onChange(null, 'lock');
+      this.announce(on ? (els.length === 1 ? 'Elemento travado.' : els.length + ' elementos travados.') : (els.length === 1 ? 'Elemento destravado.' : els.length + ' elementos destravados.'));
+      return on;
+    }
+
     /* Espelha a seleção em torno do próprio retângulo envolvente (eixo 'h' ou 'v').
      * Os elementos trocam de lado, cada um alterna seu estado espelhado e os raios
      * dos cantos são trocados, de modo que r sempre descreve o que se vê. O texto não é invertido. */
     flipSelected(axis) {
-      var els = this.selectedElements();
+      var all = this.selectedElements();
+      if (!all.length) return false;
+      var els = all.filter(function (e) { return !e.locked; });
+      if (all.length > els.length) this.cb.onLocked(all.length - els.length, 'espelhar');
       if (!els.length) return false;
       var horiz = axis !== 'v', self = this;
       var minX = Infinity, minY = Infinity, maxR = -Infinity, maxB = -Infinity;
@@ -809,11 +838,16 @@
       if (mod && key === ']') { this.bringToFront(); return true; }
       if (mod && key === '[') { this.sendToBack(); return true; }
       if (e.shiftKey && !mod && !e.altKey && (lk === 'h' || lk === 'v')) { this.flipSelected(lk); return true; }
+      if (e.shiftKey && !mod && !e.altKey && lk === 'l') { this.toggleLockSelected(); return true; }
       if (key.indexOf('Arrow') === 0 && !mod) {
         var step = e.shiftKey ? 10 : (this.snap ? GRID : 1);
         var dx = key === 'ArrowLeft' ? -step : key === 'ArrowRight' ? step : 0;
         var dy = key === 'ArrowUp' ? -step : key === 'ArrowDown' ? step : 0;
         var vp = this.vp, self = this, els = this.selectedElements();
+        var movable = els.filter(function (x) { return !x.locked; });
+        if (movable.length < els.length) this.cb.onLocked(els.length - movable.length, e.altKey ? 'redimensionar' : 'mover');
+        els = movable;
+        if (!els.length) return true;
         if (e.altKey) {
           if (els.length !== 1) return true;
           var el = els[0];
@@ -846,6 +880,12 @@
       ws.addEventListener('pointerup', function (e) { self._up(e, false); });
       ws.addEventListener('pointercancel', function (e) { self._up(e, true); });
       ws.addEventListener('lostpointercapture', function (e) { if (self.pointers.has(e.pointerId) && !self._capturing) self._up(e, true); });
+      ws.addEventListener('keydown', function (e) {
+        if (e.code === 'Space' && !self.editing && !self._space) { self._space = true; ws.classList.add('is-space'); e.preventDefault(); }
+      });
+      var endSpace = function () { self._space = false; ws.classList.remove('is-space'); };
+      ws.addEventListener('keyup', function (e) { if (e.code === 'Space') endSpace(); });
+      ws.addEventListener('blur', endSpace);
       ws.addEventListener('wheel', function (e) {
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
@@ -875,12 +915,14 @@
 
       var handle = e.target.closest('.handle');
       var node = e.target.closest('.wf');
-      if (e.button === 1) {
+      if (e.button === 1 || (this._space && e.pointerType === 'mouse')) {
         this._beginPan(e);
       } else if (handle && node) {
         this._beginResize(e, node, handle.dataset.h);
       } else if (node) {
         this._beginDrag(e, node);
+      } else if (e.pointerType === 'mouse') {
+        this._beginMarquee(e);
       } else {
         this._beginPan(e);
       }
@@ -895,6 +937,31 @@
       this.ws.classList.add('is-panning');
     }
 
+    /* Retângulo de seleção (mouse): arraste em uma área vazia. Shift/Ctrl somam à seleção atual. */
+    _beginMarquee(e) {
+      var additive = e.shiftKey || e.ctrlKey || e.metaKey;
+      var box = h('div', 'marquee');
+      box.setAttribute('aria-hidden', 'true');
+      this.stage.appendChild(box);
+      this.mode = 'marquee';
+      this.marquee = { sx: e.clientX, sy: e.clientY, base: additive ? this.selection.slice() : [], box: box, moved: false, additive: additive, last: null };
+    }
+
+    _updateMarquee(e) {
+      var m = this.marquee, z = this.zoom, vp = this.vp;
+      var sr = this.stage.getBoundingClientRect();
+      var x1 = clamp((Math.min(m.sx, e.clientX) - sr.left) / z, 0, vp.w), x2 = clamp((Math.max(m.sx, e.clientX) - sr.left) / z, 0, vp.w);
+      var y1 = clamp((Math.min(m.sy, e.clientY) - sr.top) / z, 0, vp.h), y2 = clamp((Math.max(m.sy, e.clientY) - sr.top) / z, 0, vp.h);
+      var st = m.box.style;
+      st.left = x1 + 'px'; st.top = y1 + 'px'; st.width = (x2 - x1) + 'px'; st.height = (y2 - y1) + 'px';
+      var ids = m.base.slice();
+      this.screen.elements.forEach(function (el) {
+        if (el.x < x2 && el.x + el.w > x1 && el.y < y2 && el.y + el.h > y1 && ids.indexOf(el.id) < 0) ids.push(el.id);
+      });
+      var key = ids.join(',');
+      if (key !== m.last) { m.last = key; this.select(ids); }
+    }
+
     _beginDrag(e, node) {
       var id = node.dataset.id, multi = e.shiftKey || e.ctrlKey || e.metaKey;
       if (multi) {
@@ -906,15 +973,18 @@
       if (this.selection.indexOf(id) < 0) { this.mode = null; return; }
       var self = this;
       this.mode = 'drag';
+      var sel = this.selection.map(function (sid) { return self.find(sid); });
       this.drag = {
-        sx: e.clientX, sy: e.clientY, primary: id, moved: false, multi: multi,
-        orig: this.selection.map(function (sid) { var el = self.find(sid); return { id: sid, x: el.x, y: el.y, w: el.w, h: el.h }; })
+        sx: e.clientX, sy: e.clientY, primary: id, moved: false, multi: multi, warned: false,
+        lockedCount: sel.filter(function (el) { return el.locked; }).length,
+        orig: sel.filter(function (el) { return !el.locked; }).map(function (el) { return { id: el.id, x: el.x, y: el.y, w: el.w, h: el.h }; })
       };
     }
 
     _beginResize(e, node, dir) {
       var id = node.dataset.id, el = this.find(id);
       if (!el) return;
+      if (el.locked) { this.mode = null; this.cb.onLocked(1, 'redimensionar'); return; }
       this.mode = 'resize';
       this.resize = { id: id, dir: dir, sx: e.clientX, sy: e.clientY, o: { x: el.x, y: el.y, w: el.w, h: el.h }, moved: false };
     }
@@ -950,6 +1020,13 @@
         this.setZoom(this.pinch.z * d / this.pinch.dist, cx, cy, this.pinch.anchor);
         return;
       }
+      if (this.mode === 'marquee') {
+        var mq = this.marquee;
+        if (!mq.moved && Math.hypot(e.clientX - mq.sx, e.clientY - mq.sy) < 4) return;
+        mq.moved = true;
+        this._updateMarquee(e);
+        return;
+      }
       if (this.mode === 'pan') {
         var p = this.pan, dx = e.clientX - p.sx, dy = e.clientY - p.sy;
         if (!p.moved && Math.hypot(dx, dy) < 4) return;
@@ -961,6 +1038,8 @@
       if (this.mode === 'drag') {
         var d0 = this.drag, ddx = (e.clientX - d0.sx) / z, ddy = (e.clientY - d0.sy) / z;
         if (!d0.moved && Math.hypot(ddx, ddy) * z < 4) return;
+        if (d0.lockedCount && !d0.warned) { d0.warned = true; this.cb.onLocked(d0.lockedCount, 'mover'); }
+        if (!d0.orig.length) return;
         d0.moved = true;
         var prim = d0.orig.filter(function (o) { return o.id === d0.primary; })[0] || d0.orig[0];
         if (this.snap) {
@@ -1033,6 +1112,14 @@
       } else if (this.mode === 'resize') {
         if (this.resize.moved) this.cb.onChange(null, 'resize');
         this.mode = null;
+      } else if (this.mode === 'marquee') {
+        var mq2 = this.marquee;
+        mq2.box.remove();
+        this.mode = null;
+        if (cancel) this.select(mq2.base);
+        else if (!mq2.moved) { if (!mq2.additive) this.select([]); }
+        else this.announce(this.selection.length === 1 ? '1 elemento selecionado.' : this.selection.length + ' elementos selecionados.');
+        this.ws.focus({ preventScroll: true });
       } else if (this.mode === 'pan') {
         var moved = this.pan.moved;
         this.ws.classList.remove('is-panning');
