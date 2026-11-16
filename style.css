@@ -264,7 +264,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 }
 
 /* ---------- Inspetor ---------- */
-.inspector { display: none; padding: 12px; background: var(--surface); overflow-y: auto; }
+.inspector { display: none; position: relative; padding: 12px; background: var(--surface); overflow-y: auto; overscroll-behavior: contain; }
 body.inspector-open .workspace { padding-bottom: 58vh; }
 body.inspector-open .inspector {
   display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; max-height: 55vh;
