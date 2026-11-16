@@ -29,9 +29,33 @@
     list: { label: 'Lista', icon: 'c-list', w: 280, h: 112, text: 'Item 1\nItem 2\nItem 3', editable: true, multiline: true },
     toggle: { label: 'Toggle', icon: 'c-toggle', w: 180, h: 32, text: 'Opção', editable: true, hasState: true, stateLabel: 'Ativado' },
     checkbox: { label: 'Checkbox', icon: 'c-checkbox', w: 180, h: 32, text: 'Opção', editable: true, hasState: true, stateLabel: 'Marcado' },
-    divider: { label: 'Divisor', icon: 'c-divider', w: 280, h: 12, text: '', editable: false }
+    divider: { label: 'Divisor', icon: 'c-divider', w: 280, h: 12, text: '', editable: false },
+    fab: { label: 'Botão flutuante (FAB)', icon: 'c-fab', w: 56, h: 56, text: '', editable: false },
+    iconbutton: { label: 'Botão de ícone', icon: 'c-iconbutton', w: 44, h: 44, text: '+', editable: true },
+    select: { label: 'Seleção (dropdown)', icon: 'c-select', w: 260, h: 44, text: 'Selecione uma opção', editable: true },
+    radio: { label: 'Radio button', icon: 'c-radio', w: 180, h: 32, text: 'Opção', editable: true, hasState: true, stateLabel: 'Selecionado' },
+    slider: { label: 'Slider', icon: 'c-slider', w: 240, h: 32, text: '', editable: false },
+    tabs: { label: 'Abas (tabs)', icon: 'c-tabs', w: 320, h: 44, text: 'Aba 1\nAba 2\nAba 3', editable: true, multiline: true },
+    breadcrumb: { label: 'Breadcrumb', icon: 'c-breadcrumb', w: 300, h: 28, text: 'Início\nProjetos\nConfigurações', editable: true, multiline: true },
+    bottomnav: { label: 'Navegação inferior', icon: 'c-bottomnav', w: 360, h: 64, text: 'Início\nBuscar\nPerfil', editable: true, multiline: true, full: true, dock: 'bottom' },
+    sidebar: { label: 'Menu lateral (drawer)', icon: 'c-sidebar', w: 240, h: 400, text: 'Alicerce\nPainel\nProjetos\nRelatórios\nAjustes', editable: true, multiline: true },
+    scrollbar: { label: 'Barra de rolagem', icon: 'c-scrollbar', w: 16, h: 200, text: '', editable: false },
+    card: { label: 'Card com imagem', icon: 'c-card', w: 280, h: 240, text: 'Título do card\nDescrição curta do conteúdo.', editable: true, multiline: true },
+    modal: { label: 'Modal / Diálogo', icon: 'c-modal', w: 300, h: 200, text: 'Título do diálogo\nTexto de apoio que explica a decisão.', editable: true, multiline: true },
+    toast: { label: 'Toast / Snackbar', icon: 'c-toast', w: 300, h: 48, text: 'Alterações salvas\nDesfazer', editable: true, multiline: true },
+    badge: { label: 'Badge / Tag', icon: 'c-badge', w: 64, h: 24, text: 'Ativo', editable: true },
+    chip: { label: 'Chip removível', icon: 'c-chip', w: 104, h: 32, text: 'Filtro', editable: true },
+    tooltip: { label: 'Tooltip', icon: 'c-tooltip', w: 160, h: 56, text: 'Dica de uso', editable: true },
+    progress: { label: 'Barra de progresso', icon: 'c-progress', w: 240, h: 16, text: '', editable: false },
+    skeleton: { label: 'Skeleton (carregando)', icon: 'c-skeleton', w: 280, h: 72, text: '', editable: false }
   };
-  var COMPONENT_ORDER = ['container', 'button', 'input', 'navbar', 'hamburger', 'image', 'text', 'list', 'toggle', 'checkbox', 'divider'];
+  var GROUPS = [
+    { label: 'Ações', types: ['button', 'iconbutton', 'fab'] },
+    { label: 'Formulários', types: ['input', 'select', 'checkbox', 'radio', 'toggle', 'slider'] },
+    { label: 'Navegação', types: ['navbar', 'hamburger', 'sidebar', 'bottomnav', 'tabs', 'breadcrumb', 'scrollbar'] },
+    { label: 'Conteúdo e feedback', types: ['container', 'card', 'image', 'text', 'list', 'divider', 'badge', 'chip', 'tooltip', 'progress', 'skeleton', 'modal', 'toast'] }
+  ];
+  var COMPONENT_ORDER = GROUPS.reduce(function (a, g) { return a.concat(g.types); }, []);
 
   /* Cores do wireframe (iguais às variáveis CSS --wf-*) */
   var INK = '#1F2430', MUTED = '#5B6270', FILL = '#EEF0F4', PAPER = '#FFFFFF', LIGHT = '#C9CED8', SOFT = '#F7F8FA';
@@ -39,7 +63,9 @@
 
   /* ------------------------------------------------------------------ cores */
   var HEX_RE = /^#[0-9a-fA-F]{6}$/;
-  var DEFAULT_BG = { container: PAPER, button: FILL, input: PAPER, navbar: FILL, hamburger: PAPER, image: SOFT, text: PAPER, list: PAPER, toggle: PAPER, checkbox: PAPER, divider: PAPER };
+  var DEFAULT_BG = { container: PAPER, button: FILL, input: PAPER, navbar: FILL, hamburger: PAPER, image: SOFT, text: PAPER, list: PAPER, toggle: PAPER, checkbox: PAPER, divider: PAPER,
+    fab: FILL, iconbutton: PAPER, select: PAPER, radio: PAPER, slider: PAPER, tabs: PAPER, breadcrumb: PAPER, bottomnav: PAPER, sidebar: PAPER,
+    scrollbar: PAPER, card: PAPER, modal: PAPER, toast: FILL, badge: FILL, chip: FILL, tooltip: PAPER, progress: PAPER, skeleton: LIGHT };
 
   function normHex(v) { return typeof v === 'string' && HEX_RE.test(v) ? v.toUpperCase() : ''; }
   function relLum(hex) {
@@ -72,7 +98,8 @@
   }
 
   /* ------------------------------------------------------------------ cantos (raio) */
-  var DEFAULT_RADIUS = { container: 8, button: 8, input: 6, navbar: 0, hamburger: 8, image: 0, text: 4, list: 8 };
+  var DEFAULT_RADIUS = { container: 8, button: 8, input: 6, navbar: 0, hamburger: 8, image: 0, text: 4, list: 8,
+    iconbutton: 8, select: 6, bottomnav: 0, sidebar: 0, card: 8, modal: 8, toast: 8, badge: 999, chip: 999, tooltip: 6 };
   Object.keys(DEFAULT_RADIUS).forEach(function (k) { COMPONENTS[k].radius = true; });
 
   /* r = null (padrão do tipo) ou [sup.esq., sup.dir., inf.dir., inf.esq.] em inteiros 0..999 */
@@ -89,10 +116,10 @@
     lim(r[0], r[1], w); lim(r[3], r[2], w); lim(r[0], r[3], hh); lim(r[1], r[2], hh);
     return r.map(function (v) { return Math.round(v * f * 100) / 100; });
   }
-  function radiusOf(el) {
+  function radiusOf(el, hAdj) {
     var d = DEFAULT_RADIUS[el.type] || 0;
     var base = (el.r && COMPONENTS[el.type] && COMPONENTS[el.type].radius) ? el.r : [d, d, d, d];
-    return fitRadii(base, el.w, el.h);
+    return fitRadii(base, el.w, hAdj || el.h);
   }
   function maxRadius(el) { return Math.max(1, Math.floor(Math.min(el.w, el.h) / 2)); }
 
@@ -115,6 +142,11 @@
     return n;
   }
   function firstLine(t) { return String(t || '').split('\n')[0]; }
+  /* Linhas não vazias (itens de abas, menus, breadcrumbs...). Sempre devolve ao menos um item. */
+  function lines(t) {
+    var a = String(t || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean).slice(0, 12);
+    return a.length ? a : [''];
+  }
   function num(v, d) { v = Number(v); return isFinite(v) ? v : d; }
 
   function describe(el) {
@@ -193,6 +225,129 @@
       case 'divider':
         body.appendChild(h('i', 'wf-line'));
         break;
+      case 'fab': {
+        var fs = s('svg', { viewBox: '0 0 24 24', 'class': 'wf-fill-svg', 'aria-hidden': 'true' });
+        fs.appendChild(s('path', { d: 'M12 6v12M6 12h12' }));
+        body.appendChild(fs);
+        break;
+      }
+      case 'iconbutton':
+        body.appendChild(h('span', 'wf-label', firstLine(t)));
+        break;
+      case 'select': {
+        body.appendChild(h('span', 'wf-label wf-muted', firstLine(t)));
+        var ch = s('svg', { viewBox: '0 0 16 16', 'class': 'wf-chev', 'aria-hidden': 'true' });
+        ch.appendChild(s('path', { d: 'M4 6l4 4 4-4' }));
+        body.appendChild(ch);
+        break;
+      }
+      case 'radio': {
+        var rd = s('svg', { viewBox: '0 0 20 20', 'class': 'wf-check wf-radio-ico', 'aria-hidden': 'true' });
+        rd.appendChild(s('circle', { cx: 10, cy: 10, r: 9 }));
+        if (el.checked) rd.appendChild(s('circle', { cx: 10, cy: 10, r: 5, 'class': 'dot' }));
+        body.appendChild(rd);
+        body.appendChild(h('span', 'wf-label', firstLine(t)));
+        break;
+      }
+      case 'slider': {
+        var tr = h('div', 'wf-sl-track');
+        tr.appendChild(h('i', 'wf-sl-fill'));
+        body.appendChild(tr);
+        body.appendChild(h('b', 'wf-sl-thumb'));
+        break;
+      }
+      case 'tabs':
+        lines(t).forEach(function (ln, i) { body.appendChild(h('div', 'wf-tab' + (i === 0 ? ' on' : ''), ln)); });
+        break;
+      case 'breadcrumb':
+        lines(t).forEach(function (ln, i, arr) {
+          if (i) body.appendChild(h('span', 'wf-sep', '›'));
+          body.appendChild(h('span', 'wf-crumb' + (i === arr.length - 1 ? ' last' : ''), ln));
+        });
+        break;
+      case 'bottomnav':
+        lines(t).slice(0, 6).forEach(function (ln, i) {
+          var it = h('div', 'wf-bn' + (i === 0 ? ' on' : ''));
+          it.appendChild(h('i', 'wf-bn-ico'));
+          it.appendChild(h('span', 'wf-bn-lbl', ln));
+          body.appendChild(it);
+        });
+        break;
+      case 'sidebar': {
+        var sl = lines(t);
+        body.appendChild(h('div', 'wf-sb-title', sl[0]));
+        sl.slice(1).forEach(function (ln, i) {
+          var it = h('div', 'wf-sb-item' + (i === 0 ? ' on' : ''));
+          it.appendChild(h('i'));
+          it.appendChild(h('span', 'wf-label', ln));
+          body.appendChild(it);
+        });
+        break;
+      }
+      case 'scrollbar':
+        body.appendChild(h('i', 'wf-sbthumb'));
+        break;
+      case 'card': {
+        var img = h('div', 'wf-card-img');
+        var cs = s('svg', { viewBox: '0 0 100 100', preserveAspectRatio: 'none', 'class': 'wf-fill-svg', 'aria-hidden': 'true' });
+        cs.appendChild(s('line', { x1: 0, y1: 0, x2: 100, y2: 100, 'vector-effect': 'non-scaling-stroke' }));
+        cs.appendChild(s('line', { x1: 100, y1: 0, x2: 0, y2: 100, 'vector-effect': 'non-scaling-stroke' }));
+        img.appendChild(cs);
+        body.appendChild(img);
+        var tx = h('div', 'wf-card-txt');
+        tx.appendChild(h('div', 'wf-card-title', firstLine(t)));
+        tx.appendChild(h('div', 'wf-card-desc wf-muted', String(t).split('\n').slice(1).join('\n')));
+        body.appendChild(tx);
+        break;
+      }
+      case 'modal': {
+        var hd = h('div', 'wf-md-head');
+        hd.appendChild(h('span', 'wf-md-title', firstLine(t)));
+        hd.appendChild(h('span', 'wf-md-x', '×'));
+        body.appendChild(hd);
+        body.appendChild(h('div', 'wf-md-body wf-muted', String(t).split('\n').slice(1).join('\n')));
+        var ft = h('div', 'wf-md-foot');
+        ft.appendChild(h('span', 'wf-md-btn ghost', 'Cancelar'));
+        ft.appendChild(h('span', 'wf-md-btn', 'Confirmar'));
+        body.appendChild(ft);
+        break;
+      }
+      case 'toast': {
+        var tl = String(t).split('\n');
+        body.appendChild(h('span', 'wf-label', tl[0]));
+        if (tl[1] && tl[1].trim()) body.appendChild(h('span', 'wf-act', tl[1].trim()));
+        break;
+      }
+      case 'badge':
+        body.appendChild(h('span', 'wf-label', firstLine(t)));
+        break;
+      case 'chip': {
+        body.appendChild(h('span', 'wf-label', firstLine(t)));
+        var cx = s('svg', { viewBox: '0 0 12 12', 'class': 'wf-chip-x', 'aria-hidden': 'true' });
+        cx.appendChild(s('path', { d: 'M3 3l6 6M9 3l-6 6' }));
+        body.appendChild(cx);
+        break;
+      }
+      case 'tooltip': {
+        var bx = h('div', 'wf-tip-box');
+        bx.appendChild(h('span', 'wf-label', firstLine(t)));
+        body.appendChild(bx);
+        var ar = s('svg', { viewBox: '0 0 16 10', 'class': 'wf-tip-arrow', 'aria-hidden': 'true' });
+        ar.appendChild(s('path', { d: 'M0 0h16L8 9z', 'class': 'tip-fill' }));
+        ar.appendChild(s('path', { d: 'M1 0L8 8L15 0', 'class': 'tip-line' }));
+        body.appendChild(ar);
+        break;
+      }
+      case 'progress':
+        body.appendChild(h('i', 'wf-pg-fill'));
+        break;
+      case 'skeleton': {
+        body.appendChild(h('i', 'wf-sk-av'));
+        var col = h('div', 'wf-sk-col');
+        [100, 85, 60].forEach(function (pc) { var b = h('i', 'wf-sk-bar'); b.style.width = pc + '%'; col.appendChild(b); });
+        body.appendChild(col);
+        break;
+      }
     }
     node.appendChild(body);
   }
@@ -202,6 +357,7 @@
     node.style.top = el.y + 'px';
     node.style.width = el.w + 'px';
     node.style.height = el.h + 'px';
+    if (el.type === 'scrollbar') node.classList.toggle('is-horiz', el.w > el.h);
     if (el.r && COMPONENTS[el.type] && COMPONENTS[el.type].radius) {
       node.style.setProperty('--c-radius', fitRadii(el.r, el.w, el.h).map(function (v) { return v + 'px'; }).join(' '));
     } else node.style.removeProperty('--c-radius');
@@ -401,7 +557,7 @@
       if (!c || !this.screen) return null;
       var vp = this.vp, w = Math.min(c.w, vp.w), hgt = c.h, x, y;
       if (c.full) {
-        w = vp.w; x = 0; y = 0;
+        w = vp.w; x = 0; y = c.dock === 'bottom' ? Math.max(0, vp.h - hgt) : 0;
       } else {
         var p = pos;
         if (!p) {
@@ -1087,6 +1243,272 @@
         ctx.strokeStyle = line;
         ctx.beginPath(); ctx.moveTo(0, hh / 2); ctx.lineTo(w, hh / 2); ctx.stroke();
         break;
+
+      case 'fab': {
+        var fm = Math.min(w, hh), fcx = w / 2, fcy = hh / 2;
+        ctx.beginPath(); ctx.arc(fcx, fcy, fm / 2 - 1, 0, Math.PI * 2);
+        ctx.fillStyle = bg || FILL; ctx.fill();
+        ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = mark; ctx.lineWidth = 2 * fm * 0.6 / 24;
+        var fq = fm * 0.15;
+        ctx.beginPath(); ctx.moveTo(fcx, fcy - fq); ctx.lineTo(fcx, fcy + fq); ctx.moveTo(fcx - fq, fcy); ctx.lineTo(fcx + fq, fcy); ctx.stroke();
+        break;
+      }
+      case 'iconbutton':
+        box(PAPER, R); outline(R);
+        ctx.fillStyle = txt; ctx.font = '600 20px ' + FONT; ctx.textAlign = 'center';
+        ctx.fillText(truncate(ctx, firstLine(t), w - 12), w / 2, hh / 2 + 0.5);
+        break;
+      case 'select': {
+        box(PAPER, R); outline(R);
+        ctx.fillStyle = customText ? txt : MUTED; ctx.font = '14px ' + FONT; ctx.textAlign = LA;
+        ctx.fillText(truncate(ctx, firstLine(t), w - 28 - 24), X(14), hh / 2 + 0.5);
+        var scx = fh ? 22 : w - 22, scy = hh / 2;
+        ctx.strokeStyle = mark; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(scx - 4, scy - 2); ctx.lineTo(scx, scy + 2); ctx.lineTo(scx + 4, scy - 2); ctx.stroke();
+        break;
+      }
+      case 'radio': {
+        box('', 6);
+        var rbx = fh ? w - 22 : 2, rby = (hh - 20) / 2;
+        ctx.beginPath(); ctx.arc(rbx + 10, rby + 10, 9, 0, Math.PI * 2);
+        ctx.fillStyle = bg || PAPER; ctx.fill(); ctx.strokeStyle = mark; ctx.lineWidth = 2; ctx.stroke();
+        if (el.checked) { ctx.beginPath(); ctx.arc(rbx + 10, rby + 10, 5, 0, Math.PI * 2); ctx.fillStyle = mark; ctx.fill(); }
+        ctx.fillStyle = txt; ctx.font = '14px ' + FONT; ctx.textAlign = LA;
+        ctx.fillText(truncate(ctx, firstLine(t), w - 34), X(32), hh / 2 + 0.5);
+        break;
+      }
+      case 'slider': {
+        var tw0 = w - 24, sy0 = hh / 2, pp = fh ? 0.6 : 0.4;
+        var thumbX = 12 + 2 + pp * (tw0 - 4);
+        rrect(ctx, 13, sy0 - 3, tw0 - 2, 6, [3, 3, 3, 3]); ctx.fillStyle = bg || PAPER; ctx.fill();
+        ctx.fillStyle = mark;
+        if (fh) ctx.fillRect(thumbX, sy0 - 2, 12 + tw0 - 2 - thumbX, 4); else ctx.fillRect(14, sy0 - 2, thumbX - 14, 4);
+        ctx.strokeStyle = line; ctx.lineWidth = 2; rrect(ctx, 13, sy0 - 3, tw0 - 2, 6, [3, 3, 3, 3]); ctx.stroke();
+        ctx.beginPath(); ctx.arc(thumbX, sy0, 9, 0, Math.PI * 2); ctx.fillStyle = bg || PAPER; ctx.fill();
+        ctx.strokeStyle = line; ctx.stroke();
+        break;
+      }
+      case 'tabs': {
+        var tt = lines(t), tn = tt.length, slot = w / tn;
+        if (bg) { ctx.fillStyle = bg; ctx.fillRect(0, 0, w, hh); }
+        ctx.strokeStyle = line; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, fv ? 1 : hh - 1); ctx.lineTo(w, fv ? 1 : hh - 1); ctx.stroke();
+        var tcy = fv ? (6 + hh) / 2 : (hh - 6) / 2;
+        tt.forEach(function (ln, i) {
+          var si = fh ? tn - 1 - i : i;
+          if (i === 0) { ctx.fillStyle = mark; ctx.fillRect(si * slot, fv ? 2 : hh - 6, slot, 4); }
+          ctx.fillStyle = txt; ctx.font = (i === 0 ? '700 ' : '500 ') + '14px ' + FONT; ctx.textAlign = 'center';
+          ctx.fillText(truncate(ctx, ln, slot - 16), si * slot + slot / 2, tcy + 0.5);
+        });
+        break;
+      }
+      case 'breadcrumb': {
+        var bl = lines(t), parts = [], bi;
+        for (bi = 0; bi < bl.length; bi++) {
+          if (bi) parts.push({ k: 'sep', t: '›' });
+          parts.push({ k: bi === bl.length - 1 ? 'last' : 'link', t: bl[bi] });
+        }
+        var bx0 = fh ? w - 2 : 2;
+        ctx.textAlign = fh ? 'right' : 'left';
+        parts.forEach(function (pt) {
+          ctx.font = (pt.k === 'last' ? '700 ' : '') + '14px ' + FONT;
+          var tw1 = ctx.measureText(pt.t).width;
+          ctx.fillStyle = txt;
+          ctx.fillText(pt.t, bx0, hh / 2 + 0.5);
+          if (pt.k === 'link') {
+            ctx.lineWidth = 1; ctx.strokeStyle = txt;
+            var ux = fh ? bx0 - tw1 : bx0;
+            ctx.beginPath(); ctx.moveTo(ux, hh / 2 + 8.5); ctx.lineTo(ux + tw1, hh / 2 + 8.5); ctx.stroke();
+          }
+          bx0 += (fh ? -1 : 1) * (tw1 + 8);
+        });
+        break;
+      }
+      case 'bottomnav': {
+        box(PAPER, R); outline(R);
+        var bn = lines(t).slice(0, 6), bs = (w - 4) / bn.length, btop = hh / 2 - 19.5;
+        bn.forEach(function (ln, i) {
+          var si = fh ? bn.length - 1 - i : i, bcx = 2 + si * bs + bs / 2;
+          rr(ctx, bcx - 9, btop + 1, 18, 18, 5);
+          ctx.lineWidth = 2; ctx.strokeStyle = mark;
+          if (i === 0) { ctx.fillStyle = mark; ctx.fill(); }
+          ctx.stroke();
+          ctx.fillStyle = txt; ctx.font = (i === 0 ? '700 ' : '') + '12px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(truncate(ctx, ln, bs - 8), bcx, btop + 31);
+        });
+        break;
+      }
+      case 'sidebar': {
+        box(PAPER, R); outline(R);
+        var sl = lines(t);
+        ctx.save();
+        rrect(ctx, 2, 2, w - 4, hh - 4, R.map(function (v) { return Math.max(0, v - 1); })); ctx.clip();
+        var ty0 = fv ? hh - 2 - 45 : 2;
+        ctx.fillStyle = txt; ctx.font = '700 16px ' + FONT; ctx.textAlign = LA; ctx.textBaseline = 'middle';
+        ctx.fillText(truncate(ctx, sl[0], w - 32), X(16), ty0 + (fv ? 25 : 24));
+        ctx.lineWidth = 1; ctx.strokeStyle = LIGHT;
+        var sepY = fv ? ty0 + 0.5 : ty0 + 44.5;
+        ctx.beginPath(); ctx.moveTo(2, sepY); ctx.lineTo(w - 2, sepY); ctx.stroke();
+        sl.slice(1).forEach(function (ln, i) {
+          var iy = fv ? hh - 2 - 45 - (i + 1) * 40 : 2 + 45 + i * 40, icy = iy + 20;
+          if (i === 0) { ctx.save(); ctx.globalAlpha = 0.12; ctx.fillStyle = txt; ctx.fillRect(2, iy, w - 4, 40); ctx.restore(); }
+          ctx.lineWidth = 2; ctx.strokeStyle = mark;
+          rr(ctx, fh ? w - 16 - 16 + 1 : 17, icy - 7, 14, 14, 3); ctx.stroke();
+          ctx.fillStyle = txt; ctx.font = (i === 0 ? '600 ' : '') + '14px ' + FONT; ctx.textAlign = LA;
+          ctx.fillText(truncate(ctx, ln, w - 32 - 28), X(44), icy + 0.5);
+        });
+        ctx.restore();
+        break;
+      }
+      case 'scrollbar': {
+        var sbr = Math.min(w, hh) / 2 - 1;
+        rrect(ctx, 1, 1, w - 2, hh - 2, [sbr, sbr, sbr, sbr]); ctx.fillStyle = bg || PAPER; ctx.fill();
+        ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = mark;
+        if (w > hh) {
+          var hl = 0.4 * (w - 4), hx = fh ? w - 4 - hl : 4, hr = (hh - 8) / 2;
+          rrect(ctx, hx, 4, hl, hh - 8, [hr, hr, hr, hr]); ctx.fill();
+        } else {
+          var vl = 0.4 * (hh - 4), vy = fv ? hh - 4 - vl : 4, vr = (w - 8) / 2;
+          rrect(ctx, 4, vy, w - 8, vl, [vr, vr, vr, vr]); ctx.fill();
+        }
+        break;
+      }
+      case 'card': {
+        box(PAPER, R); outline(R);
+        var cl = String(t).split('\n'), ih = (hh - 4) * 0.5;
+        ctx.save();
+        rrect(ctx, 2, 2, w - 4, hh - 4, R.map(function (v) { return Math.max(0, v - 1); })); ctx.clip();
+        var iy0 = fv ? hh - 2 - ih : 2;
+        ctx.strokeStyle = line; ctx.lineWidth = 2;
+        ctx.save(); ctx.beginPath(); ctx.rect(2, iy0 + (fv ? 2 : 0), w - 4, ih - 2); ctx.clip();
+        ctx.beginPath(); ctx.moveTo(2, iy0 + (fv ? 2 : 0)); ctx.lineTo(w - 2, iy0 + (fv ? 2 : 0) + ih - 2);
+        ctx.moveTo(w - 2, iy0 + (fv ? 2 : 0)); ctx.lineTo(2, iy0 + (fv ? 2 : 0) + ih - 2); ctx.stroke();
+        ctx.restore();
+        var bly = fv ? iy0 + 1 : iy0 + ih - 1;
+        ctx.beginPath(); ctx.moveTo(2, bly); ctx.lineTo(w - 2, bly); ctx.stroke();
+        ctx.font = '13px ' + FONT;
+        var dl = wrapLines(ctx, cl.slice(1).join('\n'), w - 28);
+        if (!cl.slice(1).join('').trim()) dl = [];
+        var blockH = 20 + (dl.length ? 4 + dl.length * 18 : 0);
+        var by0 = fv ? iy0 - 12 - blockH : iy0 + ih + 12;
+        if (!fv) by0 = 2 + ih + 12;
+        ctx.textBaseline = 'middle'; ctx.textAlign = LA;
+        ctx.fillStyle = txt; ctx.font = '700 15px ' + FONT;
+        ctx.fillText(truncate(ctx, cl[0], w - 28), X(14), by0 + 10.5);
+        ctx.fillStyle = customText ? txt : MUTED; ctx.font = '13px ' + FONT;
+        dl.forEach(function (ln, i) { ctx.fillText(ln, X(14), by0 + 24 + i * 18 + 9.5); });
+        ctx.restore();
+        break;
+      }
+      case 'modal': {
+        box(PAPER, R); outline(R);
+        var ml = String(t).split('\n');
+        ctx.save();
+        rrect(ctx, 2, 2, w - 4, hh - 4, R.map(function (v) { return Math.max(0, v - 1); })); ctx.clip();
+        var hy = fv ? hh - 2 - 46 : 2, fy = fv ? 2 : hh - 2 - 56;
+        ctx.lineWidth = 1; ctx.strokeStyle = LIGHT;
+        var hl2 = fv ? hy + 0.5 : hy + 45.5, fl2 = fv ? fy + 55.5 : fy + 0.5;
+        ctx.beginPath(); ctx.moveTo(2, hl2); ctx.lineTo(w - 2, hl2); ctx.moveTo(2, fl2); ctx.lineTo(w - 2, fl2); ctx.stroke();
+        ctx.textBaseline = 'middle'; ctx.fillStyle = txt; ctx.textAlign = LA;
+        var hcy = fv ? hy + 1 + 22.5 : hy + 22.5;
+        ctx.font = '700 15px ' + FONT;
+        ctx.fillText(truncate(ctx, ml[0], w - 32 - 28), X(16), hcy + 0.5);
+        ctx.font = '20px ' + FONT; ctx.textAlign = fh ? 'left' : 'right';
+        ctx.fillText('×', fh ? 16 : w - 16, hcy + 0.5);
+        // texto de apoio
+        ctx.font = '14px ' + FONT; ctx.fillStyle = customText ? txt : MUTED; ctx.textAlign = LA;
+        var dl2 = String(ml.slice(1).join('\n')).trim() ? wrapLines(ctx, ml.slice(1).join('\n'), w - 32) : [];
+        var regTop = fv ? fy + 56 : hy + 46, regBot = fv ? hy : fy;
+        var dy0 = fv ? regBot - 14 - dl2.length * 20 : regTop + 14;
+        dl2.forEach(function (ln, i) { ctx.fillText(ln, X(16), dy0 + i * 20 + 10.5); });
+        // botões
+        var fcy = fv ? fy + 27.5 : fy + 1 + 27.5;
+        ctx.font = '600 13px ' + FONT;
+        var wc = ctx.measureText('Cancelar').width + 28, wo = ctx.measureText('Confirmar').width + 28;
+        var xc, xo;
+        if (fh) { xo = 14; xc = 14 + wo + 8; } else { xo = w - 14 - wo; xc = xo - 8 - wc; }
+        ctx.fillStyle = txt; ctx.textAlign = 'center';
+        ctx.fillText('Cancelar', xc + wc / 2, fcy + 0.5);
+        rrect(ctx, xo + 1, fcy - 15, wo - 2, 30, [5, 5, 5, 5]); ctx.fillStyle = bg || PAPER; ctx.fill();
+        ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = txt; ctx.fillText('Confirmar', xo + wo / 2, fcy + 0.5);
+        ctx.restore();
+        break;
+      }
+      case 'toast': {
+        box(FILL, R); outline(R);
+        var tl2 = String(t).split('\n'), act = (tl2[1] || '').trim(), aw = 0;
+        ctx.textBaseline = 'middle';
+        if (act) {
+          ctx.font = '700 13px ' + FONT; aw = ctx.measureText(act).width;
+          ctx.fillStyle = txt; ctx.textAlign = fh ? 'left' : 'right';
+          var ax = fh ? 16 : w - 16;
+          ctx.fillText(act, ax, hh / 2 + 0.5);
+          ctx.lineWidth = 1; ctx.strokeStyle = txt;
+          var ux2 = fh ? ax : ax - aw;
+          ctx.beginPath(); ctx.moveTo(ux2, hh / 2 + 8.5); ctx.lineTo(ux2 + aw, hh / 2 + 8.5); ctx.stroke();
+        }
+        ctx.fillStyle = txt; ctx.font = '14px ' + FONT; ctx.textAlign = LA;
+        ctx.fillText(truncate(ctx, tl2[0], w - 32 - (act ? aw + 12 : 0)), X(16), hh / 2 + 0.5);
+        break;
+      }
+      case 'badge':
+        box(FILL, R); outline(R);
+        ctx.fillStyle = txt; ctx.font = '700 12px ' + FONT; ctx.textAlign = 'center';
+        ctx.fillText(truncate(ctx, firstLine(t), w - 16), w / 2, hh / 2 + 0.5);
+        break;
+      case 'chip': {
+        box(FILL, R); outline(R);
+        ctx.font = '14px ' + FONT;
+        var ctw = Math.min(ctx.measureText(firstLine(t)).width, w - 24 - 18), ctot = ctw + 6 + 12, cs0 = (w - ctot) / 2;
+        var ctx0 = fh ? cs0 + 18 : cs0, cxx = fh ? cs0 : cs0 + ctw + 6;
+        ctx.fillStyle = txt; ctx.textAlign = 'left';
+        ctx.fillText(truncate(ctx, firstLine(t), ctw + 0.5), ctx0, hh / 2 + 0.5);
+        ctx.strokeStyle = mark; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cxx + 3, hh / 2 - 3); ctx.lineTo(cxx + 9, hh / 2 + 3); ctx.moveTo(cxx + 9, hh / 2 - 3); ctx.lineTo(cxx + 3, hh / 2 + 3); ctx.stroke();
+        break;
+      }
+      case 'tooltip': {
+        var TR = radiusOf(el, hh - 8).map(function (v) { return Math.max(0, v - 1); });
+        var tbh = hh - 8;
+        ctx.save();
+        if (fv) { ctx.translate(0, hh); ctx.scale(1, -1); }
+        rrect(ctx, 1, 1, w - 2, tbh - 2, TR); ctx.fillStyle = bg || PAPER; ctx.fill();
+        ctx.strokeStyle = line; ctx.lineWidth = 2; ctx.stroke();
+        var ax0 = fh ? w - 34 : 18;
+        ctx.beginPath(); ctx.moveTo(ax0, tbh - 2); ctx.lineTo(ax0 + 16, tbh - 2); ctx.lineTo(ax0 + 8, hh - 1); ctx.closePath();
+        ctx.fillStyle = bg || PAPER; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(ax0 + 1, tbh - 2); ctx.lineTo(ax0 + 8, hh - 2); ctx.lineTo(ax0 + 15, tbh - 2); ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = txt; ctx.font = '13px ' + FONT; ctx.textAlign = 'center';
+        ctx.fillText(truncate(ctx, firstLine(t), w - 24), w / 2, (fv ? 8 + tbh / 2 : tbh / 2) + 0.5);
+        break;
+      }
+      case 'progress': {
+        var pr = Math.min(w, hh) / 2 - 1;
+        rrect(ctx, 1, 1, w - 2, hh - 2, [pr, pr, pr, pr]); ctx.fillStyle = bg || PAPER; ctx.fill();
+        ctx.save();
+        var ipr = Math.max(0, pr - 1);
+        rrect(ctx, 2, 2, w - 4, hh - 4, [ipr, ipr, ipr, ipr]); ctx.clip();
+        ctx.fillStyle = mark;
+        var pw = 0.6 * (w - 4);
+        ctx.fillRect(fh ? w - 2 - pw : 2, 2, pw, hh - 4);
+        ctx.restore();
+        ctx.strokeStyle = line; ctx.lineWidth = 2; rrect(ctx, 1, 1, w - 2, hh - 2, [pr, pr, pr, pr]); ctx.stroke();
+        break;
+      }
+      case 'skeleton': {
+        var skc = bg || LIGHT, sbw = w - 52;
+        ctx.fillStyle = skc;
+        ctx.beginPath(); ctx.arc(fh ? w - 20 : 20, hh / 2, 20, 0, Math.PI * 2); ctx.fill();
+        [1, 0.85, 0.6].forEach(function (f, i) {
+          var bw2 = Math.max(0, sbw * f), by2 = hh / 2 - 23 + i * 18;
+          rrect(ctx, fh ? sbw - bw2 : 52, by2, bw2, 10, [5, 5, 5, 5]); ctx.fill();
+        });
+        break;
+      }
     }
     ctx.restore();
   }
@@ -1176,6 +1598,7 @@
     CanvasEngine: CanvasEngine,
     COMPONENTS: COMPONENTS,
     COMPONENT_ORDER: COMPONENT_ORDER,
+    GROUPS: GROUPS,
     VIEWPORTS: VIEWPORTS,
     GRID: GRID,
     MIN_SIZE: MIN_SIZE,

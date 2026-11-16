@@ -1414,7 +1414,18 @@
   /* ================================================================== paleta */
   function buildPalette() {
     var list = $('palette-list');
-    E.COMPONENT_ORDER.forEach(function (type) {
+    E.GROUPS.forEach(function (g) {
+      var gh = document.createElement('h3');
+      gh.className = 'palette-group';
+      gh.textContent = g.label;
+      list.appendChild(gh);
+      g.types.forEach(function (type) { addPaletteItem(list, type); });
+    });
+    buildPaletteEvents(list);
+  }
+
+  function addPaletteItem(list, type) {
+    {
       var c = COMPONENTS[type];
       var b = document.createElement('button');
       b.type = 'button';
@@ -1427,8 +1438,10 @@
       sp.textContent = c.label;
       b.appendChild(sp);
       list.appendChild(b);
-    });
+    }
+  }
 
+  function buildPaletteEvents(list) {
     list.addEventListener('click', function (e) {
       var b = e.target.closest('.palette-item');
       if (!b) return;

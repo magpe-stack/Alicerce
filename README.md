@@ -1,10 +1,10 @@
 # Alicerce
 
-**Wireframes de baixa fidelidade, rápidos, offline e sem dependências.**
+**A base das interfaces de PWAs: wireframes de baixa fidelidade, rápidos, offline e sem dependências.**
 
 O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estruturar telas e fluxos de aplicativos web e mobile com atrito zero — com toque e pinça no smartphone, com mouse e atalhos no desktop.
 
-> **Por que "Alicerce"?** O alicerce é a fundação de qualquer construção: a base sólida, clara e bem planejada que existe *antes* de levantar as paredes. Em software, é a etapa de estruturar telas, hierarquia e fluxo antes de escrever o código e definir a estética final.
+> **Por que "Alicerce"?** O alicerce é a base sobre a qual tudo se apoia. O Alicerce é um sistema de wireframes para desenhar as **interfaces de PWAs**: estruturar telas, hierarquia e fluxo antes de escrever o código e definir a estética final.
 
 🔗 **App:** <https://magpe-stack.github.io/Alicerce/>
 📦 **Código:** <https://github.com/magpe-stack/Alicerce>
@@ -31,7 +31,11 @@ O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estrut
 - **Prancheta híbrida:** grade magnética (liga/desliga), moldura **Mobile 360×800** ou **Desktop 1280×800**, zoom (botões, `Ctrl`+roda do mouse, pinça no toque) e rolagem.
 - **Espelhar e cantos:** Flip horizontal/vertical (`Shift+H`/`Shift+V`) e controle de cantos retos ou arredondados (predefinições, pílula e cantos independentes), com destaque para containers.
 - **Edição completa:** arrastar, redimensionar pelas 8 alças, duplicar, excluir, trazer para frente / enviar para trás, editar texto com duplo clique (ou duplo toque), seleção múltipla (`Shift`/`Ctrl`+clique).
-- **11 componentes de baixa fidelidade:** Container/Card, Botão, Campo de input, Cabeçalho/Navbar, Menu hambúrguer, Imagem placeholder (caixa com X), Bloco de texto, Lista, Toggle, Checkbox e Divisor. Clique para inserir ou arraste (mouse) para a prancheta.
+- **29 componentes de interface**, em 4 grupos. Clique para inserir ou arraste (mouse) para a prancheta:
+  - **Ações:** Botão, Botão de ícone, Botão flutuante (FAB).
+  - **Formulários:** Campo de input, Seleção (dropdown), Checkbox, Radio button, Toggle, Slider.
+  - **Navegação:** Navbar, Menu hambúrguer, Menu lateral (drawer), Navegação inferior (tab bar), Abas (tabs), Breadcrumb, Barra de rolagem.
+  - **Conteúdo e feedback:** Container, Card com imagem, Imagem placeholder, Bloco de texto, Lista, Divisor, Badge/Tag, Chip removível, Tooltip, Barra de progresso, Skeleton, Modal/Diálogo, Toast/Snackbar.
 - **Painel de propriedades:** texto, posição (X/Y), tamanho e estado (ligado/marcado) do elemento selecionado.
 - **Ferramenta de cores:** troque o **fundo**, a **borda/linhas** e o **texto** de qualquer elemento (ou de vários de uma vez), com paleta dos 4 temas + neutras, seletor de cor livre e aviso de contraste WCAG. [Detalhes](#cores-dos-elementos)
 - **Desfazer / Refazer** com histórico de até 100 passos, **persistido** junto com o projeto.
@@ -63,6 +67,14 @@ Selecione um ou mais elementos e abra **Cores** (ícone de paleta na barra, ou a
 **Texto automático e contraste:** ao escolher um fundo, o texto passa sozinho para **preto** (fundos claros) ou **branco** (fundos escuros), sempre o de maior contraste. Se você definir manualmente uma cor de texto, o painel mostra a taxa de contraste texto/fundo com nível (**AAA ✓**, **AA ✓**, **só para texto grande ⚠**, **abaixo do mínimo WCAG ✗**) — sempre com texto e símbolo, nunca só cor.
 
 As cores entram em **tudo**: PNG, impressão, `.json`, backup, copiar/colar, duplicar e desfazer/refazer (aplicar uma cor a vários elementos é um único passo de histórico). Cores inválidas em arquivos importados são descartadas.
+
+### Como editar os componentes novos
+
+- **Texto em linhas:** *Abas*, *Breadcrumb*, *Navegação inferior* e *Menu lateral* usam uma linha por item (edite no painel ou com duplo clique). A primeira linha do Menu lateral é o título; o primeiro item de cada um aparece como ativo. *Card*, *Modal* e *Toast* usam a primeira linha como título (ou mensagem) e as seguintes como descrição (no Toast, a 2ª linha é a ação, ex.: "Desfazer").
+- **Navegação inferior** é encaixada na base da tela ao ser inserida.
+- **Radio button** tem a opção *Selecionado*; **Barra de rolagem** fica horizontal quando a largura passa da altura.
+- **Slider**, **Barra de progresso** e **Barra de rolagem** mostram um valor fixo de exemplo (40% ou 60%); com o Flip, o preenchimento vai para o outro lado.
+- Cores e cantos funcionam em quase todos; Badge e Chip já nascem em formato de pílula.
 
 ### Espelhar e cantos
 
@@ -218,7 +230,7 @@ Ao publicar uma nova versão dos arquivos, **incremente `CACHE_VERSION` em `sw.j
 }
 ```
 
-Tipos de elemento: `container`, `button`, `input`, `navbar`, `hamburger`, `image`, `text`, `list`, `toggle`, `checkbox`, `divider`.
+Tipos de elemento: `container`, `button`, `input`, `navbar`, `hamburger`, `image`, `text`, `list`, `toggle`, `checkbox`, `divider`, `fab`, `iconbutton`, `select`, `radio`, `slider`, `tabs`, `breadcrumb`, `bottomnav`, `sidebar`, `scrollbar`, `card`, `modal`, `toast`, `badge`, `chip`, `tooltip`, `progress`, `skeleton`.
 
 ## Formato dos arquivos
 
