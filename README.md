@@ -1,7 +1,5 @@
 # Manual do Alicerce
 
-Nov 16, 2026 · @Marinaldo
-
 ## 1. Conhecendo o Alicerce
 
 O Alicerce é um sistema de wireframe de baixa fidelidade para desenhar as interfaces de PWAs (Progressive Web Apps), e seu lema é "A base das interfaces de PWAs". Ele não gera código nem protótipos clicáveis: serve para pensar a estrutura de cada tela antes de desenhar o visual final.
