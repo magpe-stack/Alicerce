@@ -5,7 +5,7 @@
  * - Demais arquivos do mesmo domínio: stale-while-revalidate.
  * IMPORTANTE: ao publicar uma nova versão dos arquivos, incremente CACHE_VERSION.
  */
-var CACHE_VERSION = 'v1.5.0';
+var CACHE_VERSION = 'v1.6.0';
 var CACHE_NAME = 'alicerce-' + CACHE_VERSION;
 
 var SHELL = [

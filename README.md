@@ -1,579 +1,296 @@
-# Manual do Alicerce
+# Alicerce
 
-## 1. Conhecendo o Alicerce
+**A base das interfaces de PWAs: wireframes de baixa fidelidade, rápidos, offline e sem dependências.**
 
-O Alicerce é um sistema de wireframe de baixa fidelidade para desenhar as interfaces de PWAs (Progressive Web Apps), e seu lema é "A base das interfaces de PWAs". Ele não gera código nem protótipos clicáveis: serve para pensar a estrutura de cada tela antes de desenhar o visual final.
+O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estruturar telas e fluxos de aplicativos web e mobile com atrito zero — com toque e pinça no smartphone, com mouse e atalhos no desktop.
 
-### Para quem é
+> **Por que "Alicerce"?** O alicerce é a base sobre a qual tudo se apoia. O Alicerce é um sistema de wireframes para desenhar as **interfaces de PWAs**: estruturar telas, hierarquia e fluxo antes de escrever o código e definir a estética final.
 
-- Designers e desenvolvedores que precisam esboçar telas de um PWA com rapidez.
-- Equipes que querem discutir a estrutura de um app antes de investir em design de alta fidelidade.
-- Estudantes que estão aprendendo a organizar interfaces.
+🔗 **App:** <https://magpe-stack.github.io/Alicerce/>
+📦 **Código:** <https://github.com/magpe-stack/Alicerce>
 
-### O que o Alicerce faz
+---
 
-- Oferece 29 componentes de interface em 4 grupos, que você arrasta para a tela.
-- Permite mover, redimensionar, espelhar, travar, ocultar e reordenar elementos em camadas.
-- Ajusta cores, com verificação de contraste, e o arredondamento dos cantos.
-- Gerencia vários projetos, cada um com várias telas, e salva tudo automaticamente no seu dispositivo.
-- Exporta telas em PNG, imprime e faz backup do projeto em arquivo JSON.
-- Funciona offline depois de instalado e tem 4 temas, cada um nos modos claro e escuro.
+## Sumário
 
-### O que o Alicerce não faz
+1. [Recursos](#recursos)
+2. [Como usar](#como-usar)
+3. [Atalhos de teclado](#atalhos-de-teclado)
+4. [Temas e acessibilidade](#temas-e-acessibilidade)
+5. [Arquitetura](#arquitetura)
+6. [Formato dos arquivos](#formato-dos-arquivos)
+7. [Instalação e publicação no GitHub Pages](#publicação-no-github-pages)
+8. [Compatibilidade](#compatibilidade)
+9. [Privacidade](#privacidade)
 
-- Não é uma ferramenta de design de alta fidelidade: os componentes são propositalmente simples e sem imagens ou estilos finais.
-- Não simula comportamento: botões, menus e abas não respondem a cliques dentro do desenho.
-- Não envia seus dados para nenhum servidor. Tudo fica no navegador do seu dispositivo.
+---
 
-### Como este manual está organizado
+## Recursos
 
-As seções 2 a 4 ensinam a instalar o app e a organizar projetos e telas. As seções 5 a 11 cobrem a edição, do uso dos componentes ao zoom e ao salvamento. As seções 12 e 13 tratam de exportação, temas e acessibilidade. A seção 14 reúne os atalhos. A seção 15 é um tutorial prático e as seções 16 e 17 trazem soluções de problemas, glossário e histórico de versões. Este manual descreve a versão 1.5.0.
+- **Projetos e telas:** vários projetos, cada um com várias telas (Splash, Home, Menu, Perfil…) em abas. Criar, renomear, duplicar e excluir.
+- **Prancheta híbrida:** grade magnética (liga/desliga), moldura **Mobile 360×800** ou **Desktop 1280×800**, zoom (botões, `Ctrl`+roda do mouse, pinça no toque) e rolagem.
+- **Espelhar e cantos:** Flip horizontal/vertical (`Shift+H`/`Shift+V`) e controle de cantos retos ou arredondados (predefinições, pílula e cantos independentes), com destaque para containers.
+- **Edição completa:** arrastar, redimensionar pelas 8 alças, duplicar, excluir, trazer para frente / enviar para trás, editar texto com duplo clique (ou duplo toque), seleção múltipla (`Shift`/`Ctrl`+clique).
+- **29 componentes de interface**, em 4 grupos. Clique para inserir ou arraste (mouse) para a prancheta:
+  - **Ações:** Botão, Botão de ícone, Botão flutuante (FAB).
+  - **Formulários:** Campo de input, Seleção (dropdown), Checkbox, Radio button, Toggle, Slider.
+  - **Navegação:** Navbar, Menu hambúrguer, Menu lateral (drawer), Navegação inferior (tab bar), Abas (tabs), Breadcrumb, Barra de rolagem.
+  - **Conteúdo e feedback:** Container, Card com imagem, Imagem placeholder, Bloco de texto, Lista, Divisor, Badge/Tag, Chip removível, Tooltip, Barra de progresso, Skeleton, Modal/Diálogo, Toast/Snackbar.
+- **Painel de propriedades:** texto, posição (X/Y), tamanho e estado (ligado/marcado) do elemento selecionado.
+- **Ferramenta de cores:** troque o **fundo**, a **borda/linhas** e o **texto** de qualquer elemento (ou de vários de uma vez), com paleta dos 4 temas + neutras, seletor de cor livre e aviso de contraste WCAG. [Detalhes](#cores-dos-elementos)
+- **Desfazer / Refazer** com histórico de até 100 passos, **persistido** junto com o projeto.
+- **Autosave** em IndexedDB: nada se perde ao fechar a aba.
+- **Exportação:** projeto completo em `.json`, **PNG** (tela atual ou folha com todas as telas) via `<canvas>` nativo e **impressão** limpa de todas as telas (`@media print`).
+- **Importação / Backup:** abrir `.alicerce` / `.json`, **Backup Geral** de todos os projetos em um único arquivo e restauração (substituir tudo ou mesclar).
+- **Integração com o sistema:** File System Access API, File Handling API (abrir arquivos pelo sistema operacional), Clipboard API, Web Share API, Badging API (contagem de projetos no ícone), Fullscreen API, atalhos do aplicativo e Window Controls Overlay.
+- **Offline-first real:** o App Shell inteiro fica em cache pelo Service Worker.
+- **4 temas × modo claro/escuro**, com contrastes WCAG auditados.
 
-## 2. Instalação e primeiros passos
+## Como usar
 
-Você pode usar o Alicerce direto no navegador, sem instalar nada, ou instalá-lo como app para trabalhar offline. O endereço é [magpe-stack.github.io/Alicerce](https://magpe-stack.github.io/Alicerce/).
+### Primeiros passos
 
-### Abrir pela primeira vez
+1. Abra o app (a splash dura 3 segundos). O projeto **Meu primeiro projeto** já vem com uma tela vazia.
+2. Insira componentes pela **paleta** (parte inferior no celular, coluna à esquerda no desktop).
+3. Arraste para mover, use as alças para redimensionar, toque duas vezes para editar o texto.
+4. Use as abas para criar outras telas.
+5. Tudo é salvo automaticamente. Use **Exportar** para gerar arquivos.
 
-1. Acesse o endereço em um navegador moderno (Chrome, Edge, Safari ou Firefox).
-2. Aguarde a tela de abertura, que dura cerca de 3 segundos e mostra o lema do app.
-3. Na tela de projetos, crie o primeiro projeto com o botão de novo projeto.
+### Cores dos elementos
 
-### Instalar como app
+Selecione um ou mais elementos e abra **Cores** (ícone de paleta na barra, ou a seção *Cores* do painel de propriedades; no celular, a folha inferior).
 
-Instalado, o Alicerce abre em janela própria, tem ícone na tela inicial e funciona sem internet.
+1. Escolha onde aplicar: **Fundo**, **Borda** (bordas, linhas e ícones) ou **Texto**.
+2. Toque em uma cor da paleta — **Neutras**, **Original**, **Sóbrio**, **Hawaii** ou **Groenlândia** — ou use a **Cor personalizada** (qualquer `#RRGGBB`).
+3. **Fundo padrão / Borda padrão / Texto automático** remove a cor e volta ao visual de rascunho.
 
-- **Chrome ou Edge (computador):** use o ícone de instalação na barra de endereços ou o botão de instalar do próprio Alicerce, quando ele aparecer.
-- **Android (Chrome):** abra o menu do navegador e escolha "Instalar app" ou "Adicionar à tela inicial".
-- **iPhone e iPad (Safari):** toque em Compartilhar e depois em "Adicionar à Tela de Início".
+**Texto automático e contraste:** ao escolher um fundo, o texto passa sozinho para **preto** (fundos claros) ou **branco** (fundos escuros), sempre o de maior contraste. Se você definir manualmente uma cor de texto, o painel mostra a taxa de contraste texto/fundo com nível (**AAA ✓**, **AA ✓**, **só para texto grande ⚠**, **abaixo do mínimo WCAG ✗**) — sempre com texto e símbolo, nunca só cor.
 
-O botão de instalar depende do navegador. Se ele não aparecer, use o menu do navegador como descrito acima.
+As cores entram em **tudo**: PNG, impressão, `.json`, backup, copiar/colar, duplicar e desfazer/refazer (aplicar uma cor a vários elementos é um único passo de histórico). Cores inválidas em arquivos importados são descartadas.
 
-### Funcionamento offline
+### Como editar os componentes novos
 
-Na primeira visita, o Alicerce guarda seus próprios arquivos no navegador. A partir daí, ele abre mesmo sem conexão. Quando sai uma nova versão, o app se atualiza sozinho na visita seguinte com internet.
+- **Texto em linhas:** *Abas*, *Breadcrumb*, *Navegação inferior* e *Menu lateral* usam uma linha por item (edite no painel ou com duplo clique). A primeira linha do Menu lateral é o título; o primeiro item de cada um aparece como ativo. *Card*, *Modal* e *Toast* usam a primeira linha como título (ou mensagem) e as seguintes como descrição (no Toast, a 2ª linha é a ação, ex.: "Desfazer").
+- **Navegação inferior** é encaixada na base da tela ao ser inserida.
+- **Radio button** tem a opção *Selecionado*; **Barra de rolagem** fica horizontal quando a largura passa da altura.
+- **Slider**, **Barra de progresso** e **Barra de rolagem** mostram um valor fixo de exemplo (40% ou 60%); com o Flip, o preenchimento vai para o outro lado.
+- Cores e cantos funcionam em quase todos; Badge e Chip já nascem em formato de pílula.
 
-### Onde ficam seus dados
+### Camadas
 
-Seus projetos ficam no banco de dados do navegador (IndexedDB), neste dispositivo. Eles não vão para a nuvem. Por isso, faça backup em arquivo JSON de projetos importantes (seção 12) e não limpe os dados do site no navegador sem antes exportar.
+A aba **Camadas** (botão de camadas na barra, ou a aba ao lado de *Propriedades*; no celular abre como painel inferior) mostra todos os elementos da tela na ordem de empilhamento: **1 é o primeiro plano** (no topo da lista) e o último número é o fundo. Isso facilita, por exemplo, colocar botões sobre containers ou barras de rolagem sobre outros elementos.
 
-## 3. Tour pela interface
+- **Selecionar:** clique na linha para selecionar o elemento (`Shift`/`Ctrl` somam); selecionar na prancheta destaca a linha.
+- **Reordenar:** arraste a linha (mouse) ou use as setas para subir/descer uma camada por vez. *Trazer para frente* e *Enviar para trás* da barra continuam funcionando.
+- **Ocultar (olho):** esconde o elemento da prancheta, do PNG e da impressão sem excluí-lo; útil para alcançar o que está por baixo.
+- **Travar (cadeado):** o mesmo cadeado descrito abaixo, direto na linha.
 
-A tela do Alicerce tem quatro áreas: o cabeçalho no topo, a paleta de componentes, a área de desenho (o palco) no centro e o inspetor, que mostra as propriedades do elemento selecionado. Em telas pequenas, a paleta fica em um menu lateral (botão de menu) e o inspetor abre como uma folha sobre a tela.
+A ordem e os estados de ocultar/travar são salvos no projeto e entram no desfazer/refazer. Os elementos ocultos não são alcançados pelo retângulo de seleção.
 
-### Cabeçalho
+### Selecionar com o mouse e travar elementos
 
-| Botão | Para que serve |
-| --- | --- |
-| Renomear projeto | Troca o nome do projeto atual |
-| Novo projeto / Meus projetos | Cria um projeto ou abre a lista de projetos |
-| Modo claro/escuro | Alterna a aparência do app |
-| Tela cheia | Entra e sai do modo de tela cheia |
-| Instalar | Instala o Alicerce como app (aparece só quando o navegador permite) |
+**Seleção por retângulo.** Com o mouse, arraste em uma área vazia da prancheta para desenhar um retângulo: todo elemento tocado por ele é selecionado, ao vivo. Segure `Shift` ou `Ctrl` para somar à seleção atual. Um clique no vazio limpa a seleção. O botão **Selecionar tudo** da barra (ou `Ctrl+A`) seleciona todos os elementos da tela. Para mover a visão da prancheta, use **barra de espaço + arrastar**, o **botão do meio** do mouse, ou arraste com o dedo no toque.
 
-### Barra de ferramentas
+**Mãozinha.** O botão de mão da barra (ou a tecla `H`) liga a ferramenta de mover o palco: com ela ativa, arrastar com o botão principal do mouse (ou com o dedo) em qualquer ponto, inclusive sobre elementos, desloca a vista como se você movesse as barras de rolagem. Enquanto a mãozinha está ligada, nada é selecionado, movido ou redimensionado por engano. Desligue-a com o botão ou com `H` para voltar a editar. Alternativas temporárias: segurar `Espaço` ou usar o botão do meio do mouse.
 
-| Grupo | Botões |
-| --- | --- |
-| Histórico | Desfazer (Ctrl+Z), Refazer (Ctrl+Y) |
-| Visualização | Reduzir e aumentar zoom, Ajustar à janela, Mostrar grade, Grade magnética |
-| Moldura | Mobile 360×800 e Desktop 1280×800 |
-| Arquivo | Abrir (Ctrl+O), Salvar no disco (Ctrl+S), Exportar/Importar, Imprimir, Compartilhar |
-| Elemento | Camadas, Selecionar tudo, Travar, Copiar, Colar, Duplicar, Trazer para frente, Enviar para trás, Editar texto, Espelhar H e V, Cores, Propriedades, Excluir |
-| Telas | Nova tela, Renomear, Duplicar, Excluir |
+**Cadeado.** Selecione um ou mais elementos e use o botão de cadeado da barra, a caixa *Travar posição e tamanho* do painel de propriedades, ou `Shift+L`. O elemento travado ganha um selo de cadeado e fica fixo no lugar: não move (mouse, setas ou campos X/Y), não redimensiona, não é espelhado e não é excluído por engano. Texto, cores e cantos continuam editáveis. Em uma seleção mista, só os destravados se movem; ao excluir, os travados permanecem. Duplicar ou colar gera cópias destravadas. O estado é salvo no projeto e entra no desfazer/refazer. O selo não aparece no PNG nem na impressão.
 
-Se a janela for estreita, a barra rola na horizontal. Passe o mouse sobre qualquer botão para ver o nome e o atalho.
+### Espelhar e cantos
 
-### Paleta
+**Espelhar (Flip).** Selecione um ou mais elementos e use os botões **Espelhar na horizontal** (`Shift+H`) e **Espelhar na vertical** (`Shift+V`) na barra.
 
-A paleta lista os 29 componentes em quatro grupos: Ações, Formulários, Navegação e Conteúdo e feedback. Você arrasta um item para a tela ou o toca para inseri-lo (seção 5).
+- Com vários elementos, o grupo é espelhado em torno do próprio retângulo envolvente: eles trocam de lado, mantendo a composição.
+- Cada elemento também é invertido por dentro (ícone do menu, bolinhas da lista, caixa do checkbox, chave do toggle passam para o outro lado; o texto alinha à direita), mas **o texto nunca é escrito de trás para frente**.
+- Os raios dos cantos acompanham o espelhamento. O botão fica marcado quando todos os selecionados já estão espelhados; apertar de novo desfaz.
 
-### Palco
+**Cantos retos e arredondados.** Disponível em Container, Botão, Campo de input, Navbar, Menu hambúrguer, Imagem, Bloco de texto e Lista (seção *Cantos* do painel).
 
-É a moldura da tela que você está desenhando, com grade de fundo opcional. Fora da moldura há espaço vazio para arrastar e selecionar vários elementos.
+1. **Predefinições:** Reto (0), Suave (4), Médio (8), Grande (16) e Pílula (máximo possível, acompanha o tamanho do elemento).
+2. **Controle deslizante** de 0 até o máximo do elemento (metade da menor lateral).
+3. **Cantos independentes** (um elemento por vez): define separadamente superior esquerdo, superior direito, inferior esquerdo e inferior direito.
+4. **Cantos padrão** volta ao visual original de cada tipo.
 
-### Inspetor
+Como no CSS, raios que somados passam do tamanho do lado são reduzidos proporcionalmente. Tudo vale também para PNG, impressão, `.json`, copiar/colar e desfazer/refazer.
 
-O inspetor tem duas abas: **Propriedades** (posição, tamanho, texto, cores, cantos, espelhamento e cadeado) e **Camadas** (ordem de empilhamento). Ele muda conforme o tipo do elemento selecionado.
+### Menu (☰)
 
-## 4. Projetos e telas
+Abre a gaveta lateral com: **Novo Projeto**, **Meus Projetos**, abrir/salvar arquivo, exportar/importar/compartilhar, imprimir, **Backup Geral**, **Restaurar Backup**, seletor dos 4 temas, modo claro/escuro, tela cheia, **Instalar**, **Sobre**, GitHub e Ajuda.
 
-Um projeto reúne todas as telas de um PWA, e cada tela é um quadro onde você posiciona os componentes. Na primeira abertura, o Alicerce cria sozinho o projeto "Meu primeiro projeto", em moldura Mobile.
+### Novo Projeto
 
-### Projetos
+Pede o **nome** e o **formato inicial** (Mobile ou Desktop). Também é um atalho do aplicativo instalado (clique direito no ícone).
 
-1. Toque em **Novo projeto** e informe o nome e a moldura (Mobile 360×800 ou Desktop 1280×800).
-2. Abra **Meus projetos** para ver a lista salva neste dispositivo.
-3. Em cada projeto da lista, use **Abrir**, **Renomear**, **Duplicar** ou **Excluir**.
+### Meus Projetos
 
-Excluir um projeto é definitivo e não pode ser desfeito. Exporte um backup antes (seção 12).
+Gerenciador visual para **abrir, renomear, duplicar e excluir** os projetos salvos neste dispositivo. Também é um atalho do aplicativo instalado.
 
-### Telas
+### Salvar e abrir arquivos
 
-Os botões **Nova tela**, **Renomear**, **Duplicar** e **Excluir** ficam na barra de ferramentas, e a tela atual aparece em destaque.
+- **Salvar no disco** (`Ctrl+S`): grava direto no arquivo via *File System Access API*. Na primeira vez, pede o local; depois, o Alicerce lembra o arquivo e regrava nele. **Salvar como…** (`Ctrl+Shift+S`) escolhe outro arquivo.
+- **Abrir** (`Ctrl+O`): abre `.alicerce` ou `.json` (projeto ou backup).
+- Em navegadores sem a API, o salvar vira **download** e o abrir usa o seletor de arquivos padrão — de forma transparente.
+- Com o app **instalado**, arquivos `.alicerce` e `.json` podem ser abertos pelo sistema operacional (*File Handling API*).
 
-- Use **Duplicar tela** para criar variações de uma mesma tela, como "Login" e "Login com erro".
-- Todo projeto precisa ter ao menos uma tela; o Alicerce não deixa excluir a última.
-- Excluir uma tela pede confirmação, mas você pode desfazer logo em seguida com Ctrl+Z.
+### Exportar, importar e compartilhar
 
-### Moldura Mobile e Desktop
+| Ação | Resultado |
+|---|---|
+| Projeto (.json) | Todas as telas, coordenadas, dimensões, textos, estilos e metadados |
+| PNG — tela atual | Imagem 2× da tela ativa |
+| PNG — todas as telas | Uma folha com **todas** as telas e seus nomes |
+| Imprimir | Uma tela por página, todas as telas do projeto |
+| Compartilhar projeto / PNG | Web Share API (se o navegador não suportar, baixa o arquivo) |
 
-A moldura define o tamanho do quadro: 360×800 para celulares e 1280×800 para computadores. Ela pertence ao projeto e pode ser trocada pelos botões da barra de ferramentas.
+### Backup Geral
 
-## 5. Componentes (os 29 blocos de montar)
+**Backup Geral** exporta *todos* os projetos do IndexedDB de uma só vez em um `.json` consolidado. Para restaurar, use **Restaurar Backup…** (ou **Abrir**): você escolhe entre **Substituir tudo** (apaga os atuais) ou **Mesclar** (mantém os atuais e sobrescreve os de mesmo identificador).
 
-A paleta oferece 29 componentes em 4 grupos. Cada um aparece com o tamanho padrão indicado na tabela (largura × altura, em pixels da moldura) e pode ser redimensionado depois.
+### Copiar e colar
 
-### Como inserir
+`Ctrl+C` / `Ctrl+X` / `Ctrl+V` (ou os botões da barra) copiam elementos para a área de transferência do sistema, em texto. É possível colar em **outra tela**, **outro projeto** ou **outra janela** do Alicerce.
 
-- **Arrastar:** segure um item da paleta e solte sobre a tela.
-- **Tocar ou clicar:** o componente entra na tela em posição livre.
-- **Colar ou duplicar:** copie um elemento existente com Ctrl+C e Ctrl+V, ou use Ctrl+D.
+### Instalar
 
-A grade magnética encaixa o elemento nas linhas da grade; desligue o botão de grade magnética para posicionar livremente.
+Quando o Chrome permite a instalação, aparece o botão **Instalar** (no cabeçalho e no menu). Ele some automaticamente quando o app já está instalado. O número de projetos aparece no ícone do app (*Badging API*, onde o sistema suporta).
 
-### Catálogo
-
-| Grupo | Componente | Tamanho | Edição de texto |
-| --- | --- | --- | --- |
-| Ações | Botão | 140×44 | Um rótulo |
-| Ações | Botão de ícone | 44×44 | Um símbolo (padrão "+") |
-| Ações | Botão flutuante (FAB) | 56×56 | Não tem texto |
-| Formulários | Campo de input | 260×44 | Texto de apoio |
-| Formulários | Seleção (dropdown) | 260×44 | Texto de apoio |
-| Formulários | Checkbox | 180×32 | Rótulo e estado marcado |
-| Formulários | Radio button | 180×32 | Rótulo e estado selecionado |
-| Formulários | Toggle | 180×32 | Rótulo e estado ativado |
-| Formulários | Slider | 240×32 | Não tem texto |
-| Navegação | Cabeçalho / Navbar | 360×56 | Título |
-| Navegação | Menu hambúrguer | 44×44 | Não tem texto |
-| Navegação | Menu lateral (drawer) | 240×400 | Uma linha por item |
-| Navegação | Navegação inferior | 360×64 | Uma linha por item |
-| Navegação | Abas (tabs) | 320×44 | Uma linha por aba |
-| Navegação | Breadcrumb | 300×28 | Uma linha por nível |
-| Navegação | Barra de rolagem | 16×200 | Não tem texto |
-| Conteúdo e feedback | Container / Card | 300×180 | Opcional |
-| Conteúdo e feedback | Card com imagem | 280×240 | Título e descrição, em linhas |
-| Conteúdo e feedback | Imagem placeholder | 200×140 | Não tem texto |
-| Conteúdo e feedback | Bloco de texto | 260×72 | Texto livre |
-| Conteúdo e feedback | Lista | 280×112 | Uma linha por item |
-| Conteúdo e feedback | Divisor | 280×12 | Não tem texto |
-| Conteúdo e feedback | Badge / Tag | 64×24 | Um rótulo |
-| Conteúdo e feedback | Chip removível | 104×32 | Um rótulo |
-| Conteúdo e feedback | Tooltip | 160×56 | Texto da dica |
-| Conteúdo e feedback | Barra de progresso | 240×16 | Não tem texto |
-| Conteúdo e feedback | Skeleton (carregando) | 280×72 | Não tem texto |
-| Conteúdo e feedback | Modal / Diálogo | 300×200 | Título e texto, em linhas |
-| Conteúdo e feedback | Toast / Snackbar | 300×48 | Mensagem e ação, em linhas |
-
-### Editar o texto
-
-Selecione o elemento e pressione Enter, dê um duplo clique ou use o botão Editar texto. Nos componentes de várias linhas, cada linha vira um item: no menu lateral, a primeira linha é o título; no card, a primeira linha é o título e a segunda a descrição; no toast, a segunda linha é o botão de ação. Em componentes de várias linhas, Enter cria uma nova linha e Ctrl+Enter confirma a edição.
-
-### Estados
-
-Checkbox, radio e toggle têm um estado (marcado, selecionado, ativado) que você altera no inspetor. Isso permite mostrar, na mesma tela, a versão marcada e a desmarcada.
-
-### Componentes que se ajustam sozinhos
-
-A navbar e a navegação inferior ocupam a largura toda da tela. A navegação inferior encaixa na base da moldura quando você a insere.
-
-## 6. Selecionar, mover e redimensionar
-
-Selecionar é o primeiro passo de quase toda edição: o que está selecionado recebe a borda de seleção e é o alvo dos botões da barra de ferramentas e do inspetor.
-
-### Selecionar um elemento
-
-Clique ou toque no elemento. Clicar em uma área vazia tira a seleção.
-
-### Selecionar vários elementos
-
-- **Com o mouse:** arraste em uma área vazia, dentro ou fora da moldura. O retângulo que aparece seleciona todos os elementos que ele toca.
-- **Tudo de uma vez:** use Ctrl+A ou o botão Selecionar tudo.
-- **Elementos ocultos ou travados:** os ocultos não entram na seleção por retângulo; os travados entram, mas não se movem.
-
-Na tela de toque, arrastar em área vazia move a vista (pan) e não desenha o retângulo. Para arrastar a vista com o mouse, use o botão do meio ou segure a barra de espaço enquanto arrasta.
-
-### Mover
-
-Arraste o elemento, ou use as setas do teclado para mover um passo por vez. Com a grade magnética ligada, o elemento encaixa na grade. Se vários elementos estiverem selecionados, todos se movem juntos.
-
-### Redimensionar
-
-Arraste as alças nos cantos e bordas do elemento selecionado, ou digite os valores de largura e altura no inspetor. Cada componente tem um tamanho mínimo, e o Alicerce não deixa passar dele.
-
-### Copiar, colar, duplicar e excluir
-
-| Ação | Atalho |
-| --- | --- |
-| Copiar | Ctrl+C |
-| Colar | Ctrl+V |
-| Duplicar | Ctrl+D |
-| Excluir | Delete |
-
-Elementos travados não são excluídos pelo teclado. Destrave-os antes (seção 8).
-
-## 7. Camadas
-
-Camadas definem quem fica na frente de quem quando elementos se sobrepõem, como um botão sobre um container ou uma barra de rolagem sobre uma lista. O painel de camadas mostra essa ordem como uma lista numerada, em que o número 1 é o elemento mais à frente.
-
-### Abrir o painel
-
-Clique em **Camadas** na barra de ferramentas e o inspetor passa para a aba Camadas. Para voltar às propriedades, use o botão Propriedades.
-
-### O que cada linha mostra
-
-Cada linha traz a posição na pilha, o nome do componente com seu texto, e os botões de **olho** (mostrar ou ocultar), **cadeado** (travar ou destravar) e setas para subir ou descer uma posição.
-
-### O que você pode fazer
-
-- **Selecionar:** clique na linha para selecionar o elemento na tela. Isso ajuda a alcançar elementos que estão cobertos por outros.
-- **Reordenar:** use as setas de cada linha ou arraste a linha para outra posição.
-- **Ocultar:** o olho esconde o elemento na tela, na exportação e na impressão, sem excluí-lo. Ele continua na lista e pode voltar a qualquer momento.
-- **Travar:** o cadeado da linha faz o mesmo que o cadeado da barra (seção 8).
-
-### Atalhos de ordem
-
-Ctrl+\] traz o elemento selecionado para a frente de todos e Ctrl+\[ o envia para trás de todos. Os botões Trazer para frente e Enviar para trás da barra fazem o mesmo.
-
-### Dica
-
-Para colocar um botão sobre um container, insira o container primeiro. O último elemento inserido fica na frente. Se o botão ficar escondido, abra as camadas e suba a linha dele.
-
-## 8. Cadeado: travar elementos no lugar
-
-O cadeado impede que um elemento seja movido, redimensionado, espelhado ou excluído por acidente depois de posicionado. Um elemento travado mostra um pequeno cadeado no canto.
-
-### Como travar e destravar
-
-1. Selecione um ou mais elementos.
-2. Clique em **Travar** na barra de ferramentas, ou pressione Shift+L.
-3. Para destravar, selecione o elemento e repita o comando. Você também pode usar o cadeado da linha no painel de camadas.
-
-O Alicerce avisa com uma mensagem quando você tenta mexer em algo travado. O aviso aparece no máximo uma vez a cada 1,5 segundo, para não atrapalhar.
-
-### O que o cadeado bloqueia
-
-| Ação | Elemento travado |
-| --- | --- |
-| Arrastar | Bloqueado |
-| Redimensionar | Bloqueado |
-| Mover com as setas | Bloqueado |
-| Espelhar (Flip) | Bloqueado |
-| Excluir | Bloqueado |
-| Selecionar | Permitido |
-| Editar texto, cores e cantos | Permitido |
-| Copiar e duplicar | Permitido |
-
-O cadeado protege a posição e o tamanho. Você ainda pode trocar cores e texto de um elemento travado.
-
-### Quando usar
-
-Trave a moldura de fundo, a navbar e a navegação inferior assim que estiverem no lugar. Depois, a edição dos elementos dentro delas fica mais segura, e o retângulo de seleção não move as peças de base.
-
-## 9. Espelhar (Flip) e cantos
-
-Esta seção cobre duas ferramentas de forma: o espelhamento, que vira o elemento, e o ajuste de cantos, que alterna entre quinas retas e arredondadas.
-
-### Espelhar (Flip)
-
-Espelhar vira o elemento como em um espelho, sem mudar a posição nem o tamanho dele. É útil para criar a versão direita de um componente que você desenhou voltado para a esquerda, como uma barra de rolagem ou uma navegação em idioma que se lê da direita para a esquerda.
-
-- **Horizontal:** troca esquerda e direita (Shift+H).
-- **Vertical:** troca topo e base (Shift+V).
-
-Os dois botões ficam marcados enquanto o espelhamento estiver ativo. Para desfazer, clique de novo. O espelhamento vale também na exportação PNG e na impressão. Elementos travados não são espelhados.
-
-Em alguns componentes de conteúdo, o texto continua legível quando o elemento é espelhado, como lista, menu lateral, card, modal e tooltip; só a forma e os ícones viram.
-
-### Cantos retos e arredondados
-
-O ajuste de cantos aparece no inspetor para os componentes que têm bordas: container, botão, botão de ícone, campo de input, seleção, bloco de texto, lista, hambúrguer, navbar, navegação inferior, menu lateral, card, imagem, modal, toast, badge, chip e tooltip. Cada tipo tem um arredondamento padrão, que você pode restaurar com o botão **Cantos padrão**.
-
-| Predefinição | Valor |
-| --- | --- |
-| Reto | 0 px |
-| Suave | 4 px |
-| Médio | 8 px |
-| Grande | 16 px |
-| Pílula | Máximo (cantos totalmente redondos) |
-
-1. Selecione o elemento e abra **Propriedades**.
-2. Em **Cantos**, escolha uma predefinição ou arraste o controle **Arredondamento** de 0 a 100 px.
-3. Para valores maiores, ou para cada quina separada, marque **Cantos independentes** e preencha os quatro campos: superior esquerdo, superior direito, inferior esquerdo e inferior direito.
-
-Uma miniatura no painel mostra o resultado enquanto você ajusta. Se um raio for grande demais para o elemento, o Alicerce o reduz proporcionalmente, de modo que as curvas nunca ultrapassem os lados. Para uma tela de login, por exemplo, use um container com cantos Grandes e um botão Pílula.
-
-## 10. Cores e contraste
-
-Cada elemento tem três cores que você pode trocar: Fundo, Borda e Texto. Sem nenhuma cor aplicada, o elemento usa o tom neutro do tema, o que combina com o propósito de wireframe. Use cor com parcimônia, para destacar o que importa, como um botão principal ou um aviso.
-
-### Aplicar uma cor
-
-1. Selecione um ou mais elementos.
-2. Clique em **Cores** na barra, ou abra o inspetor na seção **Cores**.
-3. Escolha o alvo: **Fundo**, **Borda** ou **Texto**. Cada alvo mostra seu valor atual, como "padrão" ou "automático".
-4. Clique em uma amostra da paleta ou use **Cor personalizada** para escolher qualquer cor.
-
-Com vários elementos selecionados, a cor vale para todos de uma vez.
-
-### Remover uma cor
-
-O botão **Remover cor** devolve o alvo escolhido ao padrão do tema. Para voltar tudo ao padrão, repita o procedimento nos três alvos.
-
-### Texto automático e contraste
-
-Enquanto você não escolher uma cor de texto, o Alicerce escolhe sozinho preto ou branco, o que for mais legível sobre o fundo. Quando há cor de fundo e de texto, o painel mostra a taxa de contraste entre elas e a avalia pela norma WCAG:
-
-| Taxa de contraste | Avaliação mostrada |
-| --- | --- |
-| 7:1 ou mais | AAA |
-| 4,5:1 a 7:1 | AA |
-| 3:1 a 4,5:1 | Só para texto grande |
-| Abaixo de 3:1 | Abaixo do mínimo WCAG |
-
-Se a avaliação ficar abaixo de AA, o painel sugere remover a cor de texto para voltar ao automático.
-
-### As cores na exportação
-
-As cores e a borda aparecem iguais na tela, no PNG exportado e na impressão.
-
-## 11. Zoom, desfazer/refazer e salvamento automático
-
-O Alicerce salva seu trabalho sozinho, guarda um histórico de até 100 passos por projeto e permite aproximar ou afastar a visão de 10% a 400%.
-
-### Zoom e navegação
-
-- **Botões:** Reduzir zoom, Aumentar zoom e Ajustar à janela, na barra de ferramentas.
-- **Mouse:** segure Ctrl (ou Cmd) e gire a roda.
-- **Toque:** faça o gesto de pinça com dois dedos.
-- **Mover a vista:** use o botão do meio do mouse, ou segure a barra de espaço e arraste. Na tela de toque, arraste em área vazia.
-
-O modo **Ajustar à janela** mantém a tela inteira visível e se reajusta quando a janela muda de tamanho. Ao dar zoom manual, o ajuste automático é desligado até você usar o botão de novo.
-
-### Grade e encaixe
-
-A grade mostra linhas a cada 10 px. Com a **Grade magnética** ligada, elementos movidos e redimensionados encaixam nelas. As setas movem 10 px por vez com a grade ligada, 1 px com ela desligada, e 10 px com Shift pressionado.
-
-### Desfazer e refazer
-
-Ctrl+Z desfaz a última alteração, e Ctrl+Y (ou Ctrl+Shift+Z) a refaz. Também há botões na barra. O histórico guarda até 100 passos, cobre mover, redimensionar, cores, cantos, espelhar, travar, ocultar, reordenar e excluir, e fica salvo junto com o projeto, de modo que continua disponível depois de fechar e reabrir o app.
-
-### Salvamento automático
-
-A cada alteração, o Alicerce grava o projeto no banco do navegador cerca de 0,4 segundo depois. Também grava ao trocar de aba ou fechar a página. A barra de status mostra "Salvo às HH:MM". Se o navegador não permitir armazenamento local, o app avisa que o projeto não será salvo automaticamente, e você deve exportar o arquivo (seção 12).
-
-O salvamento automático é local ao dispositivo. Ele não substitui o backup em arquivo.
-
-## 12. Exportar, imprimir, compartilhar, backup e importação
-
-Todas as opções de saída ficam no botão **Exportar / Importar** da barra de ferramentas. Elas tratam o projeto completo: todas as telas, posições, tamanhos, textos, cores, cantos, espelhamentos, travas e camadas.
-
-### Exportar
-
-| Opção | O que gera | Quando usar |
-| --- | --- | --- |
-| Projeto (.json) | Arquivo com o projeto inteiro | Backup e envio para outra pessoa |
-| PNG — tela atual | Imagem da tela aberta | Colar em documento ou chat |
-| PNG — todas as telas | Uma imagem com todas as telas do projeto | Apresentar o fluxo completo |
-| Imprimir todas as telas | Folha de impressão com todas as telas | Papel ou PDF pelo navegador |
-
-O PNG e a impressão respeitam a moldura (Mobile ou Desktop), as cores, os cantos, o espelhamento e a ordem das camadas. Elementos ocultos não aparecem. Para gerar um PDF, escolha "Salvar como PDF" na janela de impressão.
-
-### Salvar no disco
-
-**Salvar no disco** (Ctrl+S) grava o projeto em um arquivo seu. **Salvar como…** (Ctrl+Shift+S) permite escolher outro nome ou pasta. Em navegadores com acesso a arquivos (Chrome e Edge), o Alicerce lembra do arquivo e grava nele nas próximas vezes. Nos demais, o arquivo é baixado.
-
-### Importar
-
-Use **Importar projeto ou backup…** (ou Ctrl+O) e escolha um arquivo .alicerce ou .json. Se o projeto já existir neste dispositivo, o Alicerce pergunta se você quer substituir o conteúdo ou importar como uma cópia.
-
-### Compartilhar
-
-**Compartilhar projeto** e **Compartilhar imagem PNG** abrem o menu de compartilhamento do sistema, em navegadores que o oferecem. Se o navegador não compartilha arquivos, o Alicerce baixa o arquivo e avisa.
-
-### Backup geral
-
-No menu lateral, **Backup Geral (todos os projetos)** reune todos os seus projetos em um único arquivo, e **Restaurar Backup…** os traz de volta. Faça um backup antes de limpar os dados do navegador, trocar de computador ou excluir projetos. Arquivos inválidos dentro de um backup são ignorados, e o aviso informa quantos foram.
-
-## 13. Temas, modo claro/escuro e acessibilidade
-
-O Alicerce tem 4 temas de cores, cada um em modo claro (padrão) e modo escuro, e foi desenhado para ser legível por pessoas com diferentes necessidades visuais. O tema muda só a aparência do app, não o conteúdo dos seus wireframes.
-
-### Escolher o tema
-
-Use o seletor **Tema de cores** no cabeçalho, ou o menu lateral em telas pequenas. O app lembra sua escolha na próxima visita.
-
-| Tema | Harmonia de cores |
-| --- | --- |
-| Original | Análoga |
-| Sóbrio | Monocromática |
-| Hawaii | Análoga |
-| Groenlândia | Análoga |
-
-### Modo claro e escuro
-
-O botão **Alternar modo claro/escuro** muda a aparência. O modo claro é o padrão: o app só passa para o escuro se você escolher.
-
-### Recursos de acessibilidade
-
-- **Contraste auditado:** cada par de texto e fundo dos temas segue as taxas WCAG 2.1 AA ou AAA. Texto branco só aparece sobre fundos escuros, e texto preto só sobre fundos claros.
-- **Não depende só de cor:** estados ativos usam também bordas, ícones e formas, o que ajuda quem tem protanopia, deuteranopia ou tritanopia.
-- **Teclado:** todas as funções têm atalho ou podem ser alcançadas com Tab. O link "Ir para a prancheta", no início da página, pula direto para a área de desenho.
-- **Leitores de tela:** botões têm nome acessível, e as mudanças importantes (tema ativado, cor aplicada, elemento travado) são anunciadas.
-- **Movimento reduzido:** quem configura o sistema para reduzir animações recebe o app com menos movimento.
-- **Tela cheia:** o botão do cabeçalho libera mais espaço para desenhar.
-
-## 14. Atalhos de teclado
-
-No Mac, use Cmd no lugar de Ctrl. Os atalhos de edição funcionam quando a área de desenho está em foco e não há um campo de texto aberto.
+## Atalhos de teclado
 
 | Atalho | Ação |
-| --- | --- |
-| Ctrl+Z | Desfazer |
-| Ctrl+Y ou Ctrl+Shift+Z | Refazer |
-| Ctrl+S | Salvar no disco |
-| Ctrl+Shift+S | Salvar como |
-| Ctrl+O | Abrir ou importar arquivo |
-| Ctrl+A | Selecionar tudo |
-| Ctrl+C / Ctrl+V | Copiar / Colar |
-| Ctrl+D | Duplicar |
-| Delete ou Backspace | Excluir |
-| Enter ou F2 | Editar o texto do elemento |
-| Esc | Limpar a seleção ou fechar o inspetor |
-| Setas | Mover o elemento (1 px, ou 10 px com a grade magnética) |
-| Shift + setas | Mover 10 px |
-| Ctrl+\] | Trazer para frente |
-| Ctrl+\[ | Enviar para trás |
-| Shift+H | Espelhar na horizontal |
-| Shift+V | Espelhar na vertical |
-| Shift+L | Travar ou destravar |
-| Ctrl + roda do mouse | Zoom |
-| Espaço + arrastar | Mover a vista |
-| Arrastar em área vazia | Selecionar com retângulo |
+|---|---|
+| `Tab` / `Shift+Tab` | Navegar entre elementos e controles |
+| Setas | Mover o elemento selecionado (1 px, ou 10 px com a grade magnética; `Shift` = 10 px) |
+| `Alt` + setas | Redimensionar o elemento selecionado |
+| `Enter` / `F2` | Editar o texto (`Enter` confirma, `Esc` cancela; em textos multilinha, `Ctrl+Enter` confirma) |
+| `Delete` / `Backspace` | Excluir selecionados |
+| `Ctrl+D` | Duplicar |
+| `Ctrl+C` / `X` / `V` | Copiar / recortar / colar |
+| `Ctrl+]` / `Ctrl+[` | Trazer para frente / enviar para trás |
+| `Shift+H` / `Shift+V` | Espelhar na horizontal / vertical |
+| `Shift+L` | Travar / destravar elemento (cadeado) |
+| `H` | Mãozinha: liga/desliga a ferramenta de mover o palco |
+| `Ctrl+A` | Selecionar tudo |
+| `Ctrl+Z` / `Ctrl+Y` | Desfazer / refazer (`Ctrl+Shift+Z` também refaz) |
+| `Ctrl+S` / `Ctrl+Shift+S` | Salvar / Salvar como |
+| `Ctrl+O` | Abrir arquivo |
+| `Esc` | Limpar seleção, fechar diálogos e a gaveta |
 
-## 15. Tutorial prático: uma tela de login
+**Toque:** um dedo arrasta elementos ou rola a prancheta (arrastando no fundo); dois dedos fazem zoom de pinça; toque duplo edita o texto.
 
-Neste tutorial você monta uma tela de login mobile em cerca de 10 minutos e usa quase todos os recursos do Alicerce: componentes, cantos, cores, camadas, cadeado, espelhamento e exportação.
+## Temas e acessibilidade
 
-### Preparação
+Quatro temas exclusivos, combinados com **Modo Claro** (obrigatório ao iniciar, fundo `#FFFFFF`) e **Modo Escuro** (fundo `#10141D`). A escolha é salva no `localStorage`.
 
-1. Abra **Novo projeto**, dê o nome "App de exemplo" e escolha a moldura **Mobile 360×800**.
-2. Renomeie a primeira tela para "Login" com o botão **Renomear tela**.
-3. Deixe a **Grade magnética** ligada para os elementos alinharem.
+| Tema | Harmonia | Cor principal (claro) | Texto sobre a cor |
+|---|---|---|---|
+| **Original** (padrão) | Análoga | `#29243C` | Branco |
+| **Sóbrio** | Monocromática | `#156372` / `#2098AE` | Branco / Preto |
+| **Hawaii** | Análoga | `#FF7800` | Preto |
+| **Groenlândia** | Análoga | `#002699` / `#007299` | Branco |
 
-### Passo 1: o cabeçalho
+Regras aplicadas (laboratório Itten, WCAG 2.1 AA/AAA):
 
-Arraste **Cabeçalho / Navbar** para o topo da tela e edite o texto (Enter) para "Entrar". Como ele ocupa a largura toda, basta soltar no topo. Em seguida, trave-o com Shift+L.
+- **Texto branco só sobre fundos escuros** (`#29243C`, `#35243C`, `#002699`, `#156372`, `#703500`…) e **texto preto só sobre fundos claros** (`#FFF700`, `#87FF00`, `#ABE5EF`, `#00A8E0`, `#3BC2DB`, `#2098AE`…).
+- No **Modo Escuro**, os destaques usam as cores claras de cada paleta (`#F07DDC`, `#3BC2DB`, `#FFF700`, `#00A8E0`) como fundo de botão com texto preto, e como cor de texto/ícone/borda sobre `#10141D`.
+- **Nunca só a cor:** estados ativos usam borda sólida mais espessa, ponto indicador, ícones e sublinhado (útil em protanopia, deuteranopia e tritanopia — especialmente no tema Hawaii).
+- Navegação completa por teclado, foco visível, `aria-*`, *skip link*, anúncios por leitor de tela, alvos de toque de 44 px e respeito a `prefers-reduced-motion`.
 
-### Passo 2: o cartão de login
+## Arquitetura
 
-1. Arraste um **Container / Card** para o centro da tela.
-2. No inspetor, em **Cantos**, escolha **Grande** para arredondar as quinas.
-3. Trave o container para não movê-lo sem querer ao montar o que fica sobre ele.
+Somente **HTML5, CSS3 e JavaScript (ES6+) puros**: sem frameworks, bibliotecas, CDNs ou fontes externas. Ícones em SVG inline.
 
-### Passo 3: os campos
+```
+Alicerce/
+├── index.html         Estrutura, sprite SVG, splash, gaveta, diálogos
+├── style.css          Layout responsivo, componentes, splash, impressão
+├── themes.css         4 temas × claro/escuro (tokens CSS)
+├── app.js             Orquestração: projetos, telas, histórico, arquivos, temas, PWA
+├── canvas-engine.js   Motor da prancheta: PointerEvents, zoom, PNG, impressão
+├── storage.js         Camada IndexedDB (projects, history, meta)
+├── sw.js              Service Worker offline-first (Cache API)
+├── manifest.json      Web App Manifest (atalhos, file_handlers, WCO)
+├── icon-192.png       (já existe na raiz do repositório)
+├── icon-512.png       (já existe na raiz do repositório)
+└── README.md
+```
 
-Arraste dois **Campo de input** para dentro do container, um sobre o outro. Edite os textos para "E-mail" e "Senha". Selecione os dois (Shift+clique ou retângulo de seleção) e alinhe-os pela grade.
+### Módulos
 
-Se um campo ficar escondido atrás do container, abra **Camadas**, selecione a linha do campo e suba-a, ou use Ctrl+\].
+- **`storage.js`** — `AlicerceStorage`: Promises sobre IndexedDB. *Stores:* `projects` (um registro por projeto), `history` (pilha de desfazer/refazer por projeto) e `meta` (guarda o `FileSystemFileHandle` de cada projeto para regravar no mesmo arquivo).
+- **`canvas-engine.js`** — `AlicerceEngine.CanvasEngine`: desenha elementos em DOM, gerencia seleção, arrastar/redimensionar, zoom e pinça com `PointerEvents` (mouse, toque e caneta), teclado e edição de texto. Também renderiza PNG com `<canvas>` 2D e monta a área de impressão.
+- **`app.js`** — estado do projeto, histórico por *snapshots* (com agrupamento de ações repetidas, como setas ou digitação), autosave com *debounce*, importação com validação e sanitização, backup, temas, gaveta, diálogos, paleta, instalação e integração com as APIs do Chrome.
+- **`sw.js`** — pré-cacheia o App Shell na instalação; navegações respondem do cache (instantâneo e offline) e atualizam em segundo plano; demais arquivos usam *stale-while-revalidate*.
 
-### Passo 4: a ação principal
+### Atualizando o app em produção
 
-1. Arraste um **Botão** abaixo dos campos e edite o texto para "Entrar".
-2. Em **Cantos**, escolha **Pílula**.
-3. Em **Cores**, escolha uma cor de **Fundo**. O painel mostra o contraste com o texto: procure AA ou AAA.
+Ao publicar uma nova versão dos arquivos, **incremente `CACHE_VERSION` em `sw.js`**. Assim, o cache antigo é descartado e a nova versão assume.
 
-### Passo 5: as opções extras
+### Modelo de dados
 
-- Adicione um **Checkbox** com o texto "Lembrar de mim" e marque o estado no inspetor.
-- Adicione um **Bloco de texto** com "Esqueci minha senha".
-- Adicione um **Toast / Snackbar** no rodapé, com a mensagem "Senha incorreta", para mostrar o estado de erro.
+```jsonc
+{
+  "id": "uuid",
+  "name": "Meu projeto",
+  "viewport": "mobile",              // "mobile" (360×800) | "desktop" (1280×800)
+  "activeScreenId": "uuid",
+  "createdAt": 1700000000000,
+  "updatedAt": 1700000000000,
+  "version": 1,
+  "screens": [
+    {
+      "id": "uuid",
+      "name": "Home",
+      "elements": [
+        { "id": "uuid", "type": "button", "x": 40, "y": 120, "w": 140, "h": 44,
+          "text": "Entrar", "checked": false,
+          "fill": "#29243C", "stroke": "", "color": "",    // cores: "#RRGGBB" ou "" (padrão)
+          "flipH": false, "flipV": false,
+          "hidden": false,        // oculto da prancheta, do PNG e da impressão
+          "locked": false,        // cadeado: true impede mover, redimensionar, espelhar e excluir
+          "r": null }   // cantos: null (padrão do tipo) ou [sup.esq., sup.dir., inf.dir., inf.esq.] em px, 0–999
+      ]
+    }
+  ]
+}
+```
 
-### Passo 6: uma segunda tela
+Tipos de elemento: `container`, `button`, `input`, `navbar`, `hamburger`, `image`, `text`, `list`, `toggle`, `checkbox`, `divider`, `fab`, `iconbutton`, `select`, `radio`, `slider`, `tabs`, `breadcrumb`, `bottomnav`, `sidebar`, `scrollbar`, `card`, `modal`, `toast`, `badge`, `chip`, `tooltip`, `progress`, `skeleton`.
 
-Use **Duplicar tela**, renomeie a cópia para "Login com erro" e altere as cores ou o texto do toast. Assim você documenta dois estados sem refazer nada.
+## Formato dos arquivos
 
-### Passo 7: conferir e exportar
+- **Projeto** (`.alicerce` ou `.json`):
+  `{ "app": "alicerce", "kind": "project", "version": 1, "exportedAt": "…", "project": { … } }`
+- **Backup Geral** (`.json`):
+  `{ "app": "alicerce", "kind": "backup", "version": 1, "exportedAt": "…", "projects": [ { … }, … ] }`
 
-1. Abra **Camadas** e confira a ordem: navbar e container ao fundo, campos e botão na frente.
-2. Abra **Exportar / Importar** e escolha **PNG — todas as telas** para ver o fluxo completo, ou **Projeto (.json)** para guardar um backup.
+Todo arquivo importado é **validado e sanitizado** (tipos, limites numéricos, tamanhos de texto, identificadores únicos) antes de entrar no banco.
 
-Pronto: você tem um wireframe de duas telas, pronto para mostrar a quem vai projetar ou programar a interface.
+## Publicação no GitHub Pages
 
-## 16. Solução de problemas e perguntas frequentes
+1. Coloque todos os arquivos na **raiz** do repositório `magpe-stack/Alicerce`, junto com `icon-192.png` e `icon-512.png`.
+2. Em **Settings → Pages**, escolha *Deploy from a branch* → `main` → `/ (root)`.
+3. Acesse <https://magpe-stack.github.io/Alicerce/>.
 
-A maioria dos problemas tem causa simples: um elemento travado, oculto ou coberto por outro, ou um recurso que o navegador não oferece.
+Todos os caminhos são **relativos** (`./`), então funcionam no subcaminho `/Alicerce/` do GitHub Pages. O Service Worker e a instalação exigem **HTTPS** (o GitHub Pages já fornece) ou `localhost`.
 
-### Problemas comuns
+Para testar localmente:
 
-| Sintoma | Causa provável | O que fazer |
-| --- | --- | --- |
-| O elemento não se move, não muda de tamanho ou não é excluído | Está travado (aparece um cadeado no canto) | Selecione-o e pressione Shift+L |
-| O elemento sumiu | Está oculto, fora da vista ou atrás de outro | Abra **Camadas**: reative o olho, ou selecione a linha e suba-a |
-| Não consigo clicar no elemento de baixo | Outro elemento o cobre | Selecione pela lista de **Camadas** |
-| O rascunho de uma tela não aparece depois de reabrir | O navegador bloqueou o armazenamento local | Libere o armazenamento do site e use backup em arquivo |
-| O botão Instalar não aparece | O navegador não oferece instalação neste momento | Use o menu do navegador (seção 2) |
-| A barra de ferramentas passa da largura da janela | Janela estreita | Role a barra na horizontal ou aumente a janela |
-| O PNG não foi gerado | Projeto muito grande para o navegador | Exporte tela por tela, ou reduza a quantidade de elementos |
-| Compartilhar baixou um arquivo | O navegador não compartilha arquivos | Envie o arquivo baixado manualmente |
-| Salvar no disco baixa um arquivo novo a cada vez | O navegador não grava direto em arquivos | Comportamento esperado em navegadores sem essa função |
-| O app não mostra a versão nova | O navegador ainda usa a versão guardada | Feche e reabra o app, ou recarregue a página com conexão |
+```bash
+python3 -m http.server 8080
+# abra http://localhost:8080
+```
 
-### Perguntas frequentes
+## Compatibilidade
 
-**Posso trabalhar sem internet?** Sim, depois da primeira visita ou da instalação. O app inteiro é guardado no dispositivo.
+Projetado para o **Google Chrome** (desktop e Android) e navegadores baseados em Chromium, usando somente suas APIs nativas:
 
-**Meus dados ficam na nuvem?** Não. Tudo fica neste navegador e neste dispositivo. Para usar em outro computador, exporte o projeto ou o backup geral e importe lá.
+Service Worker · Cache API · IndexedDB · File System Access API · File Handling API · Clipboard API · Web Share API · Fullscreen API · Badging API · Window Controls Overlay · `beforeinstallprompt` · Pointer Events.
 
-**Perdi um projeto. Consigo recuperar?** Só se houver backup. A exclusão de projetos é definitiva, e limpar os dados do site apaga todos os projetos.
+Recursos de integração com o sistema operacional (arquivos, compartilhamento, badge, instalação) dependem do suporte da plataforma; quando indisponíveis, o Alicerce usa o fallback (download/upload padrão) e informa o usuário.
 
-**Por que os botões do desenho não fazem nada ao clicar?** O Alicerce é um wireframe estático: ele não simula comportamento. A intenção é definir estrutura e hierarquia.
+## Privacidade
 
-**Posso usar imagens minhas?** Não. O componente de imagem é um espaço reservado, de propósito, para manter o foco na estrutura.
+Tudo acontece **no seu dispositivo**. O Alicerce não envia dados a nenhum servidor, não usa analytics e não carrega recursos externos. Seus projetos ficam no IndexedDB do navegador — faça **Backup Geral** periodicamente, pois limpar os dados do site apaga os projetos.
 
-**Quantas telas e elementos posso criar?** Não há limite fixo. Projetos muito grandes podem deixar o app mais lento ou impedir a geração de PNG.
+## Contribuindo
 
-**Posso editar o mesmo projeto em dois dispositivos?** Não ao mesmo tempo. Cada dispositivo guarda sua cópia. Exporte em um e importe no outro, escolhendo substituir ou importar como cópia.
-
-## 17. Glossário e histórico de versões
-
-### Glossário
-
-| Termo | Significado |
-| --- | --- |
-| Wireframe | Esboço de baixa fidelidade que mostra a estrutura de uma tela, sem cores finais, imagens ou detalhes visuais |
-| PWA | Progressive Web App: site que se instala como app e funciona offline |
-| Moldura | Tamanho da tela desenhada: Mobile 360×800 ou Desktop 1280×800 |
-| Palco | Área central onde você posiciona os componentes |
-| Inspetor | Painel que mostra as propriedades e as camadas do elemento selecionado |
-| Componente | Bloco de interface da paleta, como botão, campo ou navbar |
-| Elemento | Componente já colocado em uma tela |
-| Camada | Posição de um elemento na pilha de sobreposição: a primeira está à frente |
-| Grade magnética | Encaixe automático de elementos nas linhas da grade (10 px) |
-| Flip | Espelhamento horizontal ou vertical de um elemento |
-| Raio de canto | Medida de arredondamento das quinas de um elemento, em pixels |
-| FAB | Floating Action Button: botão redondo flutuante para a ação principal |
-| Toast / Snackbar | Mensagem curta e temporária de retorno ao usuário |
-| Skeleton | Esboço cinza que indica conteúdo ainda carregando |
-| Breadcrumb | Trilha de navegação que mostra onde o usuário está na hierarquia |
-| Drawer | Menu lateral que desliza sobre a tela |
-| Contraste (WCAG) | Razão entre as luminosidades do texto e do fundo; AA exige ao menos 4,5:1 |
-| IndexedDB | Banco de dados do navegador onde os projetos são salvos |
-| Backup geral | Arquivo único com todos os projetos do dispositivo |
-
-### Histórico de versões
-
-| Versão | Novidades |
-| --- | --- |
-| 1.5.0 | Painel de camadas: ordem de empilhamento, ocultar, travar e reordenar por setas ou arrastando |
-| 1.4.0 | Seleção por retângulo com o mouse e cadeado para travar elementos |
-| 1.3.0 | Novo lema "A base das interfaces de PWAs" e 29 componentes em 4 grupos |
-| 1.2.1 | Correção do movimento indesejado da tela ao inserir ou mover elementos |
-| 1.2.0 | Ferramenta de espelhamento (Flip) e sistema de cantos retos e arredondados |
-| 1.1.0 | Ferramenta de cores para fundo, borda e texto, com verificação de contraste |
-| 1.0.0 | Versão inicial: projetos, telas, componentes básicos, exportação, impressão, temas e uso offline |
-
-### Mais informações
-
-O código e a documentação técnica estão no [repositório do Alicerce no GitHub](https://github.com/magpe-stack/Alicerce). O app está em [magpe-stack.github.io/Alicerce](https://magpe-stack.github.io/Alicerce/).
+Sugestões e correções são bem-vindas em <https://github.com/magpe-stack/Alicerce>.

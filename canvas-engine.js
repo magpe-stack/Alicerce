@@ -874,6 +874,7 @@
       if (this.editing) return false;
       var key = e.key, mod = e.ctrlKey || e.metaKey, lk = key.toLowerCase();
       if (mod && lk === 'a') { this.selectAll(); return true; }
+      if (!e.shiftKey && !mod && !e.altKey && lk === 'h') { this.toggleHand(); return true; }
       if (!this.selection.length) return false;
       if (key === 'Delete' || key === 'Backspace') { this.deleteSelected(); return true; }
       if (key === 'Escape') { this.select([]); this.ws.focus({ preventScroll: true }); return true; }
@@ -959,7 +960,7 @@
 
       var handle = e.target.closest('.handle');
       var node = e.target.closest('.wf');
-      if (e.button === 1 || (this._space && e.pointerType === 'mouse')) {
+      if (e.button === 1 || (this._space && e.pointerType === 'mouse') || this.hand) {
         this._beginPan(e);
       } else if (handle && node) {
         this._beginResize(e, node, handle.dataset.h);
@@ -974,6 +975,17 @@
       try { this.ws.setPointerCapture(e.pointerId); } catch (err) { /* ignorado */ }
       this._capturing = false;
     }
+
+    /* Ferramenta mãozinha: o arrasto com o botão principal (ou toque) move o palco em qualquer ponto. */
+    setHand(on) {
+      on = !!on;
+      if (on === !!this.hand) return;
+      this.endEdit(true);
+      this.hand = on;
+      this.ws.classList.toggle('is-hand', on);
+      if (this.cb.onHand) this.cb.onHand(on);
+    }
+    toggleHand() { this.setHand(!this.hand); }
 
     _beginPan(e) {
       this.mode = 'pan';
@@ -1168,7 +1180,7 @@
         var moved = this.pan.moved;
         this.ws.classList.remove('is-panning');
         this.mode = null;
-        if (!moved && !cancel) { this.select([]); this.ws.focus({ preventScroll: true }); }
+        if (!moved && !cancel && !this.hand) { this.select([]); this.ws.focus({ preventScroll: true }); }
       } else if (this.mode === 'pinch') {
         if (this.pointers.size === 1) {
           var rest = Array.from(this.pointers.values())[0];

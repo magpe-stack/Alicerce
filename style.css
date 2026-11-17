@@ -161,6 +161,10 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 }
 .workspace:focus-visible { outline-offset: -4px; }
 .workspace.is-panning { cursor: grabbing; }
+.workspace.is-hand, .workspace.is-hand .wf, .workspace.is-hand .wf * { cursor: grab; }
+.workspace.is-hand.is-panning, .workspace.is-hand.is-panning .wf, .workspace.is-hand.is-panning .wf * { cursor: grabbing; }
+.workspace.is-hand .handle { pointer-events: none; }
+.workspace.is-hand .wf { touch-action: none; }
 .workspace.is-space { cursor: grab; }
 .workspace.is-space .wf { cursor: grab; }
 .marquee { position: absolute; z-index: 50; pointer-events: none; box-sizing: border-box; border: calc(1.5px * var(--inv, 1)) dashed var(--art-sel); background: color-mix(in srgb, var(--art-sel) 14%, transparent); }

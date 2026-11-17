@@ -1682,6 +1682,7 @@
     'zoom-out': function () { engine.zoomBy(1 / 1.2); },
     'zoom-100': function () { engine.setZoom(1); },
     fit: fitView,
+    hand: function () { engine.toggleHand(); },
     grid: function (btn) {
       var on = btn.getAttribute('aria-pressed') !== 'true';
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -1940,6 +1941,11 @@
         onSelection: updateSelectionUI,
         onGeometry: function () { syncInspector(false); },
         onZoom: onZoom,
+        onHand: function (on) {
+          var b = $('tb-hand');
+          if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          announce(on ? 'Mãozinha ativada: arraste para mover o palco.' : 'Mãozinha desativada.');
+        },
         onLocked: function (n, verb) {
           var now = Date.now();
           if (state.lockToastAt && now - state.lockToastAt < 1500) return;
