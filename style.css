@@ -286,6 +286,32 @@ body.inspector-open .inspector {
 .inspector-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .inspector-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
 .insp-empty { color: var(--text-muted); font-size: 0.9rem; }
+.insp-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.insp-tab { flex: 1; min-height: 40px; padding: 6px 8px; background: var(--bg); color: var(--text); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+.insp-tab[aria-selected="true"] { background: var(--accent-bg); color: var(--accent-fg); border-color: var(--btn-border); }
+.inspector[data-tab="props"] #panel-layers { display: none; }
+.inspector[data-tab="layers"] > :not(.inspector-head):not(.insp-tabs):not(#panel-layers) { display: none; }
+.layers-hint { margin: 0 0 8px; font-size: 0.78rem; color: var(--text-muted); }
+.layers-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.layer-row { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto auto; align-items: center; gap: 2px; background: var(--bg); border: 2px solid var(--border); border-radius: 10px; padding: 2px; }
+.layer-row[aria-selected="true"] { border-color: var(--accent); background: var(--surface-2); box-shadow: inset 4px 0 0 var(--accent); }
+.layer-row.is-dragging { opacity: 0.45; }
+.layer-row.drop-before::before, .layer-row.drop-after::after { content: ""; position: absolute; left: 4px; right: 4px; height: 4px; border-radius: 2px; background: var(--accent); }
+.layer-row.drop-before::before { top: -5px; }
+.layer-row.drop-after::after { bottom: -5px; }
+.layer-main { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 40px; padding: 2px 6px; background: transparent; color: var(--text); border: 0; border-radius: 8px; cursor: pointer; text-align: left; font: inherit; }
+.layer-num { flex: none; min-width: 22px; height: 22px; display: inline-grid; place-items: center; border: 2px solid var(--border); border-radius: 6px; font-size: 0.72rem; font-weight: 700; }
+.layer-ico { flex: none; width: 20px; height: 20px; }
+.layer-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.layer-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layer-type { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layer-btn { width: 32px; height: 36px; display: inline-grid; place-items: center; padding: 0; background: transparent; color: var(--text); border: 0; border-radius: 8px; cursor: pointer; }
+.layer-btn:hover:not(:disabled) { background: var(--surface-2); }
+.layer-btn:disabled { opacity: 0.35; cursor: default; }
+.layer-btn .icon { width: 18px; height: 18px; }
+.layer-btn[aria-pressed="true"] { background: var(--accent-bg); color: var(--accent-fg); }
+.layer-row.is-off .layer-main { opacity: 0.55; }
+.wf.is-hidden { display: none !important; }
 .insp-type { margin-bottom: 10px; }
 
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; min-width: 0; flex: 1; }
@@ -626,3 +652,7 @@ dialog a { color: var(--link); text-decoration: underline; }
   .print-stage .wf { cursor: default; }
   .print-stage .wf::before { display: none !important; }
 }
+
+/* Aba Camadas: painel lateral mais largo para caber nome + ações */
+@media (min-width: 900px) { body.layers-wide .main { grid-template-columns: 208px minmax(0, 1fr) 340px; } }
+@media (min-width: 1600px) { body.layers-wide .main { grid-template-columns: 240px minmax(0, 1fr) 380px; } }

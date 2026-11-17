@@ -166,6 +166,7 @@
           flipH: !!e.flipH,
           flipV: !!e.flipV,
           locked: !!e.locked,
+          hidden: !!e.hidden,
           r: COMPONENTS[e.type].radius ? E.normR(e.r) : null
         };
       });
@@ -446,12 +447,13 @@
     setDisabled('el-flip-h', n < 1);
     setDisabled('el-flip-v', n < 1);
     setDisabled('el-lock', n < 1);
-    if (n < 1) openInspector(false);
+    if (n < 1 && $('inspector').dataset.tab !== 'layers') openInspector(false);
     syncInspector(true);
     setTimeout(revealSelection, 60);
   }
 
   function syncInspector(force) {
+    renderLayers();
     var els = engine.selectedElements();
     var empty = $('insp-empty'), form = $('insp-form');
     if (els.length !== 1) {
@@ -483,6 +485,161 @@
     syncCorners(els, force);
     syncFlipButtons(els);
     syncLock(els);
+  }
+
+  /* ---------- Camadas ---------- */
+  var layersSig = '';
+
+  function layerName(el) {
+    var t = String(el.text || '').split('\n')[0].trim();
+    return t ? (t.length > 24 ? t.slice(0, 23) + '…' : t) : COMPONENTS[el.type].label;
+  }
+
+  function setPanelTab(tab) {
+    var insp = $('inspector');
+    insp.dataset.tab = tab;
+    ['props', 'layers'].forEach(function (t) {
+      $('tab-' + t).setAttribute('aria-selected', t === tab ? 'true' : 'false');
+    });
+    $('inspector-title').textContent = tab === 'layers' ? 'Camadas' : 'Propriedades';
+    $('el-layers').setAttribute('aria-pressed', tab === 'layers' ? 'true' : 'false');
+    document.body.classList.toggle('layers-wide', tab === 'layers');
+    layersSig = '';
+    renderLayers();
+  }
+
+  function showLayers() {
+    var narrow = window.matchMedia('(max-width: 899.98px)').matches;
+    var onLayers = $('inspector').dataset.tab === 'layers';
+    if (narrow) {
+      if (onLayers && document.body.classList.contains('inspector-open')) { openInspector(false); setPanelTab('props'); return; }
+      setPanelTab('layers');
+      openInspector(true);
+    } else {
+      setPanelTab(onLayers ? 'props' : 'layers');
+    }
+  }
+
+  function renderLayers() {
+    var list = $('layers-list');
+    if (!engine.screen || !list || $('inspector').dataset.tab !== 'layers') return;
+    var els = engine.screen.elements, sel = engine.selection;
+    var sig = els.map(function (e) { return [e.id, e.type, layerName(e), e.locked ? 1 : 0, e.hidden ? 1 : 0].join('|'); }).join(';') + '#' + sel.join(',') + '#' + engine.screen.id;
+    if (sig === layersSig) return;
+    layersSig = sig;
+    var act = document.activeElement, keep = act && list.contains(act) ? [act.closest('.layer-row').dataset.id, act.dataset.act || 'main'] : null;
+    list.textContent = '';
+    $('layers-empty').hidden = els.length > 0;
+    var n = els.length;
+    for (var i = n - 1; i >= 0; i--) {
+      (function (el, pos) {
+        var c = COMPONENTS[el.type], name = layerName(el), isSel = sel.indexOf(el.id) > -1;
+        var li = document.createElement('li');
+        li.className = 'layer-row' + (el.hidden ? ' is-off' : '');
+        li.dataset.id = el.id;
+        li.draggable = true;
+        li.setAttribute('aria-selected', isSel ? 'true' : 'false');
+        var main = document.createElement('button');
+        main.type = 'button';
+        main.className = 'layer-main';
+        main.dataset.act = 'main';
+        main.setAttribute('aria-pressed', isSel ? 'true' : 'false');
+        main.setAttribute('aria-label', 'Camada ' + pos + ' de ' + n + (pos === 1 ? ' (primeiro plano)' : '') + ': ' + c.label + (name !== c.label ? ', ' + name : '') + (el.hidden ? ', oculta' : '') + (el.locked ? ', travada' : ''));
+        var num = document.createElement('span'); num.className = 'layer-num'; num.textContent = pos; num.setAttribute('aria-hidden', 'true');
+        main.appendChild(num);
+        main.appendChild(svgIcon(c.icon, 'icon layer-ico'));
+        var tx = document.createElement('span'); tx.className = 'layer-txt';
+        var nm = document.createElement('span'); nm.className = 'layer-name'; nm.textContent = name;
+        var ty = document.createElement('span'); ty.className = 'layer-type'; ty.textContent = c.label;
+        tx.appendChild(nm); tx.appendChild(ty);
+        main.appendChild(tx);
+        li.appendChild(main);
+        function btn(act, icon, label, pressed, disabled) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.className = 'layer-btn'; b.dataset.act = act;
+          b.setAttribute('aria-label', label + ': ' + name);
+          b.title = label;
+          if (pressed !== null) b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+          if (disabled) b.disabled = true;
+          b.appendChild(svgIcon(icon));
+          li.appendChild(b);
+        }
+        btn('hide', el.hidden ? 'i-eye-off' : 'i-eye', el.hidden ? 'Mostrar camada' : 'Ocultar camada', !!el.hidden, false);
+        btn('lock', el.locked ? 'i-lock' : 'i-unlock', el.locked ? 'Destravar camada' : 'Travar camada', !!el.locked, false);
+        btn('up', 'i-arrow-up', 'Subir uma camada (para a frente)', null, pos === 1);
+        btn('down', 'i-arrow-down', 'Descer uma camada (para trás)', null, pos === n);
+        list.appendChild(li);
+      })(els[i], n - i);
+    }
+    if (keep) {
+      var target = list.querySelector('.layer-row[data-id="' + keep[0] + '"] [data-act="' + keep[1] + '"]');
+      if (target && !target.disabled) target.focus({ preventScroll: true });
+      else { var m = list.querySelector('.layer-row[data-id="' + keep[0] + '"] [data-act="main"]'); if (m) m.focus({ preventScroll: true }); }
+    }
+    var cur = list.querySelector('.layer-row[aria-selected="true"]');
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
+  }
+
+  function bindLayers() {
+    var list = $('layers-list'), dragId = null;
+    $('tab-props').addEventListener('click', function () { setPanelTab('props'); });
+    $('tab-layers').addEventListener('click', function () { setPanelTab('layers'); });
+    list.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act]');
+      var row = e.target.closest('.layer-row');
+      if (!b || !row) return;
+      var id = row.dataset.id, el = engine.find(id);
+      if (!el) return;
+      switch (b.dataset.act) {
+        case 'main':
+          if (e.shiftKey || e.ctrlKey || e.metaKey) {
+            engine.select(engine.selection.indexOf(id) > -1 ? engine.selection.filter(function (x) { return x !== id; }) : engine.selection.concat([id]));
+          } else engine.select([id]);
+          break;
+        case 'hide': engine.setLayerProp(id, 'hidden', !el.hidden); break;
+        case 'lock': engine.setLayerProp(id, 'locked', !el.locked); break;
+        case 'up': engine.stepLayer(id, 1); break;
+        case 'down': engine.stepLayer(id, -1); break;
+      }
+    });
+    list.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      var row = e.target.closest('.layer-row');
+      if (!row || !e.target.classList.contains('layer-main')) return;
+      var next = e.key === 'ArrowUp' ? row.previousElementSibling : row.nextElementSibling;
+      if (next) { e.preventDefault(); next.querySelector('.layer-main').focus(); }
+    });
+    list.addEventListener('dragstart', function (e) {
+      var row = e.target.closest && e.target.closest('.layer-row');
+      if (!row) return;
+      dragId = row.dataset.id;
+      row.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', dragId); } catch (x) { /* ignorado */ }
+    });
+    function clearMarks() { list.querySelectorAll('.drop-before,.drop-after,.is-dragging').forEach(function (r) { r.classList.remove('drop-before', 'drop-after', 'is-dragging'); }); }
+    list.addEventListener('dragover', function (e) {
+      if (!dragId) return;
+      var row = e.target.closest('.layer-row');
+      if (!row || row.dataset.id === dragId) return;
+      e.preventDefault();
+      var r = row.getBoundingClientRect(), before = e.clientY < r.top + r.height / 2;
+      list.querySelectorAll('.drop-before,.drop-after').forEach(function (x) { x.classList.remove('drop-before', 'drop-after'); });
+      row.classList.add(before ? 'drop-before' : 'drop-after');
+    });
+    list.addEventListener('drop', function (e) {
+      if (!dragId) return;
+      var row = e.target.closest('.layer-row');
+      if (row && row.dataset.id !== dragId) {
+        e.preventDefault();
+        var r = row.getBoundingClientRect(), above = e.clientY < r.top + r.height / 2;
+        var rest = engine.screen.elements.filter(function (x) { return x.id !== dragId; });
+        var ri = rest.findIndex(function (x) { return x.id === row.dataset.id; });
+        engine.moveLayer(dragId, above ? ri + 1 : ri);
+      }
+      dragId = null; clearMarks();
+    });
+    list.addEventListener('dragend', function () { dragId = null; clearMarks(); });
   }
 
   /* ---------- Cadeado ---------- */
@@ -1564,12 +1721,17 @@
     'el-front': function () { engine.bringToFront(); },
     'el-back': function () { engine.sendToBack(); },
     'el-edit': function () { if (engine.selection.length === 1) engine.startEdit(engine.selection[0]); },
+    'el-layers': showLayers,
     'el-select-all': function () { engine.selectAll(); engine.ws.focus({ preventScroll: true }); },
     'el-lock': function () { engine.toggleLockSelected(); },
     'el-flip-h': function () { engine.flipSelected('h'); },
     'el-flip-v': function () { engine.flipSelected('v'); },
     'el-colors': openColors,
-    'el-props': function () { openInspector(!document.body.classList.contains('inspector-open')); },
+    'el-props': function () {
+      var open = !document.body.classList.contains('inspector-open');
+      if (open && $('inspector').dataset.tab !== 'props') setPanelTab('props');
+      openInspector(open);
+    },
     'el-delete': function () { engine.deleteSelected(); },
     'screen-add': addScreen,
     'screen-rename': renameScreen,
@@ -1796,6 +1958,7 @@
     buildPalette();
     buildSwatches();
     buildCorners();
+    bindLayers();
     bindInspector();
     bindClipboardEvents();
     bindUI();

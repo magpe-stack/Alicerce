@@ -75,6 +75,10 @@
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></symbol>
     <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 017.5-2"/></symbol>
     <symbol id="i-select-all" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 3"/><rect x="8" y="8" width="8" height="8" rx="1"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0112 5c6.4 0 10 7 10 7a17 17 0 01-3.2 4M6.5 6.6A17 17 0 002 12s3.6 7 10 7a10 10 0 004.1-.9"/><path d="M9.9 9.9a3 3 0 004.2 4.2"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
     <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
     <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
 
@@ -216,6 +220,7 @@
     </div>
 
     <div class="tb-group" role="group" aria-label="Elemento selecionado">
+      <button type="button" id="el-layers" class="icon-btn" data-action="el-layers" aria-label="Camadas" aria-pressed="false" title="Painel de camadas (ordem de empilhamento)"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg></button>
       <button type="button" id="el-select-all" class="icon-btn" data-action="el-select-all" aria-label="Selecionar tudo" title="Selecionar tudo (Ctrl+A). Arraste em uma área vazia para selecionar com o mouse."><svg class="icon" aria-hidden="true"><use href="#i-select-all"/></svg></button>
       <button type="button" id="el-lock" class="icon-btn" data-action="el-lock" aria-label="Travar posição do elemento" aria-pressed="false" title="Travar / destravar posição (Shift+L)" disabled><svg class="icon" aria-hidden="true"><use id="el-lock-use" href="#i-unlock"/></svg></button>
       <button type="button" id="el-copy" class="icon-btn" data-action="el-copy" aria-label="Copiar elemento" title="Copiar (Ctrl+C)" disabled><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg></button>
@@ -258,10 +263,19 @@
       </div>
     </div>
 
-    <aside id="inspector" class="inspector" aria-label="Propriedades do elemento">
+    <aside id="inspector" class="inspector" data-tab="props" aria-label="Propriedades e camadas">
       <div class="inspector-head">
-        <h2 class="inspector-title">Propriedades</h2>
-        <button type="button" class="icon-btn only-narrow" data-action="el-props" aria-label="Fechar propriedades"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+        <h2 class="inspector-title" id="inspector-title">Propriedades</h2>
+        <button type="button" class="icon-btn only-narrow" data-action="el-props" aria-label="Fechar painel"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <div class="insp-tabs" role="tablist" aria-label="Painel lateral">
+        <button type="button" role="tab" id="tab-props" class="insp-tab" data-tab="props" aria-selected="true" aria-controls="inspector">Propriedades</button>
+        <button type="button" role="tab" id="tab-layers" class="insp-tab" data-tab="layers" aria-selected="false" aria-controls="panel-layers">Camadas</button>
+      </div>
+      <div id="panel-layers" class="layers" role="tabpanel" aria-labelledby="tab-layers">
+        <p class="layers-hint">Do primeiro plano (1, no topo) ao fundo. Arraste as linhas ou use as setas para reordenar.</p>
+        <ul id="layers-list" class="layers-list" aria-label="Camadas da tela"></ul>
+        <p id="layers-empty" class="insp-empty" hidden>Esta tela ainda não tem elementos.</p>
       </div>
       <p id="insp-empty" class="insp-empty">Selecione um elemento na prancheta para editar suas propriedades.</p>
       <div id="insp-form" class="insp-form" hidden>
@@ -499,7 +513,7 @@
     </div>
     <div class="about-hero">
       <img src="./icon-192.png" alt="" width="72" height="72">
-      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.4.0</span></p>
+      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.5.0</span></p>
     </div>
 
     <h3>Propósito</h3>
@@ -520,6 +534,7 @@
       <div><dt>Ctrl + D</dt><dd>Duplicar</dd></div>
       <div><dt>Ctrl + C / X / V</dt><dd>Copiar, recortar e colar</dd></div>
       <div><dt>Ctrl + ] / [</dt><dd>Trazer para frente / enviar para trás</dd></div>
+      <div><dt>Camadas</dt><dd>Aba "Camadas": ordem de empilhamento, ocultar e travar cada elemento</dd></div>
       <div><dt>Shift + L</dt><dd>Travar / destravar elemento (cadeado)</dd></div>
       <div><dt>Arrastar no vazio</dt><dd>Selecionar vários com o mouse (Shift/Ctrl soma). Mova a tela com a barra de espaço + arrastar ou o botão do meio</dd></div>
       <div><dt>Shift + H / V</dt><dd>Espelhar na horizontal / vertical</dd></div>

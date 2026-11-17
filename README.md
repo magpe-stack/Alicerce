@@ -76,6 +76,17 @@ As cores entram em **tudo**: PNG, impressão, `.json`, backup, copiar/colar, dup
 - **Slider**, **Barra de progresso** e **Barra de rolagem** mostram um valor fixo de exemplo (40% ou 60%); com o Flip, o preenchimento vai para o outro lado.
 - Cores e cantos funcionam em quase todos; Badge e Chip já nascem em formato de pílula.
 
+### Camadas
+
+A aba **Camadas** (botão de camadas na barra, ou a aba ao lado de *Propriedades*; no celular abre como painel inferior) mostra todos os elementos da tela na ordem de empilhamento: **1 é o primeiro plano** (no topo da lista) e o último número é o fundo. Isso facilita, por exemplo, colocar botões sobre containers ou barras de rolagem sobre outros elementos.
+
+- **Selecionar:** clique na linha para selecionar o elemento (`Shift`/`Ctrl` somam); selecionar na prancheta destaca a linha.
+- **Reordenar:** arraste a linha (mouse) ou use as setas para subir/descer uma camada por vez. *Trazer para frente* e *Enviar para trás* da barra continuam funcionando.
+- **Ocultar (olho):** esconde o elemento da prancheta, do PNG e da impressão sem excluí-lo; útil para alcançar o que está por baixo.
+- **Travar (cadeado):** o mesmo cadeado descrito abaixo, direto na linha.
+
+A ordem e os estados de ocultar/travar são salvos no projeto e entram no desfazer/refazer. Os elementos ocultos não são alcançados pelo retângulo de seleção.
+
 ### Selecionar com o mouse e travar elementos
 
 **Seleção por retângulo.** Com o mouse, arraste em uma área vazia da prancheta para desenhar um retângulo: todo elemento tocado por ele é selecionado, ao vivo. Segure `Shift` ou `Ctrl` para somar à seleção atual. Um clique no vazio limpa a seleção. O botão **Selecionar tudo** da barra (ou `Ctrl+A`) seleciona todos os elementos da tela. Para mover a visão da prancheta, use **barra de espaço + arrastar**, o **botão do meio** do mouse, ou arraste com o dedo no toque.
@@ -230,6 +241,7 @@ Ao publicar uma nova versão dos arquivos, **incremente `CACHE_VERSION` em `sw.j
           "text": "Entrar", "checked": false,
           "fill": "#29243C", "stroke": "", "color": "",    // cores: "#RRGGBB" ou "" (padrão)
           "flipH": false, "flipV": false,
+          "hidden": false,        // oculto da prancheta, do PNG e da impressão
           "locked": false,        // cadeado: true impede mover, redimensionar, espelhar e excluir
           "r": null }   // cantos: null (padrão do tipo) ou [sup.esq., sup.dir., inf.dir., inf.esq.] em px, 0–999
       ]

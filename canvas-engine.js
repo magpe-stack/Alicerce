@@ -96,6 +96,7 @@
     node.classList.toggle('is-flip-h', !!el.flipH);
     node.classList.toggle('is-flip-v', !!el.flipV);
     node.classList.toggle('is-locked', !!el.locked);
+    node.classList.toggle('is-hidden', !!el.hidden);
   }
 
   /* ------------------------------------------------------------------ cantos (raio) */
@@ -158,6 +159,7 @@
     if (c.hasState) out += el.checked ? ', ' + c.stateLabel.toLowerCase() : ', desativado';
     if (el.flipH || el.flipV) out += ', espelhado' + (el.flipH && el.flipV ? ' na horizontal e na vertical' : el.flipH ? ' na horizontal' : ' na vertical');
     if (el.locked) out += ', travado';
+    if (el.hidden) out += ', oculto';
     out += '. Posição ' + Math.round(el.x) + ', ' + Math.round(el.y) + '. Tamanho ' + Math.round(el.w) + ' por ' + Math.round(el.h) + '.';
     return out;
   }
@@ -573,7 +575,7 @@
         x = clamp(x, 0, Math.max(0, vp.w - w));
         y = clamp(y, 0, Math.max(0, vp.h - hgt));
       }
-      var el = { id: uid(), type: type, x: x, y: y, w: w, h: hgt, text: c.text || '', checked: false, fill: '', stroke: '', color: '', flipH: false, flipV: false, r: null, locked: false };
+      var el = { id: uid(), type: type, x: x, y: y, w: w, h: hgt, text: c.text || '', checked: false, fill: '', stroke: '', color: '', flipH: false, flipV: false, r: null, locked: false, hidden: false };
       this.screen.elements.push(el);
       var node = buildNode(el);
       this.nodes.set(el.id, node);
@@ -613,7 +615,7 @@
         var c = {
           id: uid(), type: e.type, text: e.text || '', checked: !!e.checked,
           fill: normHex(e.fill), stroke: normHex(e.stroke), color: normHex(e.color),
-          flipH: !!e.flipH, flipV: !!e.flipV, r: normR(e.r), locked: false,
+          flipH: !!e.flipH, flipV: !!e.flipV, r: normR(e.r), locked: false, hidden: false,
           w: e.w, h: e.h, x: e.x + off, y: e.y + off
         };
         c.x = clamp(c.x, 0, Math.max(0, vp.w - c.w));
@@ -642,20 +644,61 @@
       this.announce(els.length === 1 ? 'Elemento duplicado.' : els.length + ' elementos duplicados.');
     }
 
-    _reorder(front) {
-      if (!this.selection.length) return;
-      var ids = this.selection, sel = [], rest = [];
-      this.screen.elements.forEach(function (e) { (ids.indexOf(e.id) > -1 ? sel : rest).push(e); });
-      this.screen.elements = front ? rest.concat(sel) : sel.concat(rest);
+    _syncOrder() {
       var self = this;
       this.screen.elements.forEach(function (e) {
         var n = self.nodes.get(e.id);
         if (n) self.stage.appendChild(n);
       });
+    }
+
+    _reorder(front) {
+      if (!this.selection.length) return;
+      var ids = this.selection, sel = [], rest = [];
+      this.screen.elements.forEach(function (e) { (ids.indexOf(e.id) > -1 ? sel : rest).push(e); });
+      this.screen.elements = front ? rest.concat(sel) : sel.concat(rest);
+      this._syncOrder();
       this.cb.onChange(null, 'order');
       this.announce(front ? 'Trazido para frente.' : 'Enviado para trás.');
       this.focusSelected();
     }
+
+    /* Camadas: o índice 0 é o fundo e o último é o primeiro plano. */
+    layerIndex(id) {
+      for (var i = 0; i < this.screen.elements.length; i++) if (this.screen.elements[i].id === id) return i;
+      return -1;
+    }
+
+    moveLayer(id, to) {
+      if (!this.screen) return false;
+      var arr = this.screen.elements, from = this.layerIndex(id);
+      if (from < 0) return false;
+      to = clamp(Math.round(to), 0, arr.length - 1);
+      if (to === from) return false;
+      var el = arr.splice(from, 1)[0];
+      arr.splice(to, 0, el);
+      this._syncOrder();
+      this.cb.onChange(null, 'order');
+      var pos = arr.length - to;
+      this.announce('Camada ' + pos + (pos === 1 ? ' (primeiro plano)' : '') + ' de ' + arr.length + '.');
+      return true;
+    }
+
+    stepLayer(id, dir) { return this.moveLayer(id, this.layerIndex(id) + (dir > 0 ? 1 : -1)); }
+
+    /* Alterna uma propriedade de camada ('locked' ou 'hidden') de um elemento específico. */
+    setLayerProp(id, prop, val) {
+      var el = this.find(id);
+      if (!el || (prop !== 'locked' && prop !== 'hidden')) return false;
+      var patch = {}; patch[prop] = !!val;
+      this._patch(el, patch);
+      this._decorate();
+      this.cb.onGeometry();
+      this.cb.onChange(null, 'layer');
+      this.announce(prop === 'locked' ? (val ? 'Camada travada.' : 'Camada destravada.') : (val ? 'Camada oculta.' : 'Camada visível.'));
+      return true;
+    }
+
     bringToFront() { this._reorder(true); }
     sendToBack() { this._reorder(false); }
 
@@ -697,6 +740,7 @@
     _patch(el, patch) {
       var vp = this.vp, c = COMPONENTS[el.type], textChanged = false, stateChanged = false, styleChanged = false;
       if ('locked' in patch) { el.locked = !!patch.locked; styleChanged = true; }
+      if ('hidden' in patch) { el.hidden = !!patch.hidden; styleChanged = true; }
       if (el.locked) patch = Object.assign({}, patch, { x: undefined, y: undefined, w: undefined, h: undefined });
       ['x', 'y', 'w', 'h'].forEach(function (k) { if (patch[k] === undefined) delete patch[k]; });
       if ('w' in patch) el.w = Math.max(MIN_SIZE, Math.round(num(patch.w, el.w)));
@@ -956,7 +1000,7 @@
       st.left = x1 + 'px'; st.top = y1 + 'px'; st.width = (x2 - x1) + 'px'; st.height = (y2 - y1) + 'px';
       var ids = m.base.slice();
       this.screen.elements.forEach(function (el) {
-        if (el.x < x2 && el.x + el.w > x1 && el.y < y2 && el.y + el.h > y1 && ids.indexOf(el.id) < 0) ids.push(el.id);
+        if (!el.hidden && el.x < x2 && el.x + el.w > x1 && el.y < y2 && el.y + el.h > y1 && ids.indexOf(el.id) < 0) ids.push(el.id);
       });
       var key = ids.join(',');
       if (key !== m.last) { m.last = key; this.select(ids); }
@@ -1605,7 +1649,7 @@
     ctx.fillStyle = PAPER;
     ctx.fillRect(0, 0, vp.w, vp.h);
     ctx.beginPath(); ctx.rect(0, 0, vp.w, vp.h); ctx.clip();
-    screen.elements.forEach(function (el) { drawElement(ctx, el); });
+    screen.elements.forEach(function (el) { if (!el.hidden) drawElement(ctx, el); });
     ctx.restore();
   }
 
