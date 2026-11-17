@@ -158,11 +158,19 @@
 
     <div class="hdr-actions">
       <button type="button" class="icon-btn hide-narrow" data-action="new" title="Novo projeto">
-        <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span class="btn-text">Novo</span>
+        <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span class="btn-text hide-mid">Novo</span>
       </button>
       <button type="button" class="icon-btn hide-narrow" data-action="projects" title="Meus projetos">
-        <svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg><span class="btn-text">Projetos</span>
+        <svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg><span class="btn-text hide-mid">Projetos</span>
       </button>
+
+      <span class="hdr-sep hide-narrow" aria-hidden="true"></span>
+      <button type="button" class="icon-btn hide-narrow" data-action="open" aria-label="Abrir arquivo do disco" title="Abrir arquivo (Ctrl+O)"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg></button>
+      <button type="button" class="icon-btn hide-narrow" data-action="save" aria-label="Salvar no disco" title="Salvar no disco (Ctrl+S)"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg></button>
+      <button type="button" class="icon-btn hide-narrow" data-action="export" aria-label="Exportar, compartilhar e importar" title="Exportar / Importar"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg></button>
+      <button type="button" class="icon-btn hide-narrow" data-action="print" aria-label="Imprimir todas as telas" title="Imprimir todas as telas"><svg class="icon" aria-hidden="true"><use href="#i-print"/></svg></button>
+      <button type="button" class="icon-btn hide-narrow" data-action="share" aria-label="Compartilhar projeto" title="Compartilhar projeto"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg></button>
+      <span class="hdr-sep hide-narrow" aria-hidden="true"></span>
 
       <label class="visually-hidden" for="theme-select">Tema de cores</label>
       <select id="theme-select" class="hdr-select hide-narrow js-theme-select" title="Tema de cores">
@@ -175,16 +183,16 @@
       <button type="button" class="icon-btn js-mode-toggle" data-action="mode" aria-label="Ativar modo escuro" title="Alternar modo claro/escuro">
         <svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg>
       </button>
-      <button type="button" class="icon-btn hide-narrow js-fs" data-action="fullscreen" aria-label="Entrar em tela cheia" title="Tela cheia">
+      <button type="button" class="icon-btn hide-narrow hide-mid js-fs" data-action="fullscreen" aria-label="Entrar em tela cheia" title="Tela cheia">
         <svg class="icon" aria-hidden="true"><use href="#i-fullscreen"/></svg>
       </button>
       <button type="button" class="icon-btn js-install" data-action="install" hidden title="Instalar o Alicerce como aplicativo">
         <svg class="icon" aria-hidden="true"><use href="#i-install"/></svg><span class="btn-text hide-narrow">Instalar</span>
       </button>
-      <a class="icon-btn hide-narrow" href="https://github.com/magpe-stack/Alicerce" target="_blank" rel="noopener noreferrer" aria-label="Repositório do Alicerce no GitHub (abre em nova aba)" title="GitHub">
+      <a class="icon-btn hide-narrow hide-mid" href="https://github.com/magpe-stack/Alicerce" target="_blank" rel="noopener noreferrer" aria-label="Repositório do Alicerce no GitHub (abre em nova aba)" title="GitHub">
         <svg class="icon icon-fill" aria-hidden="true"><use href="#i-github"/></svg>
       </a>
-      <a class="icon-btn hide-narrow" href="https://github.com/magpe-stack/Alicerce/blob/main/README.md" target="_blank" rel="noopener noreferrer" aria-label="Ajuda: documentação do Alicerce (abre em nova aba)" title="Ajuda">
+      <a class="icon-btn hide-narrow hide-mid" href="https://github.com/magpe-stack/Alicerce/blob/main/README.md" target="_blank" rel="noopener noreferrer" aria-label="Ajuda: documentação do Alicerce (abre em nova aba)" title="Ajuda">
         <svg class="icon" aria-hidden="true"><use href="#i-help"/></svg>
       </a>
     </div>
@@ -198,12 +206,6 @@
       <button type="button" id="tb-redo" class="icon-btn" data-action="redo" aria-label="Refazer" title="Refazer (Ctrl+Y)" disabled><svg class="icon" aria-hidden="true"><use href="#i-redo"/></svg></button>
     </div>
 
-    <div class="tb-group" role="group" aria-label="Zoom">
-      <button type="button" class="icon-btn" data-action="zoom-out" aria-label="Reduzir zoom" title="Reduzir zoom"><svg class="icon" aria-hidden="true"><use href="#i-zoom-out"/></svg></button>
-      <button type="button" id="tb-zoom-label" class="icon-btn zoom-label" data-action="zoom-100" aria-label="Zoom atual 100%. Ativar para voltar a 100%" title="Voltar a 100%">100%</button>
-      <button type="button" class="icon-btn" data-action="zoom-in" aria-label="Aumentar zoom" title="Aumentar zoom"><svg class="icon" aria-hidden="true"><use href="#i-zoom-in"/></svg></button>
-      <button type="button" class="icon-btn" data-action="fit" aria-label="Ajustar à janela" title="Ajustar à janela"><svg class="icon" aria-hidden="true"><use href="#i-fit"/></svg></button>
-    </div>
 
     <div class="tb-group" role="group" aria-label="Prancheta">
       <button type="button" id="tb-hand" class="icon-btn" data-action="hand" aria-pressed="false" aria-label="Mãozinha: mover o palco" title="Mãozinha: arraste para mover o palco (H)"><svg class="icon" aria-hidden="true"><use href="#i-hand"/></svg></button>
@@ -213,13 +215,6 @@
       <button type="button" id="vp-desktop" class="icon-btn" data-action="vp-desktop" aria-pressed="false" aria-label="Moldura Desktop 1280 por 800" title="Desktop 1280×800"><svg class="icon" aria-hidden="true"><use href="#i-desktop"/></svg></button>
     </div>
 
-    <div class="tb-group" role="group" aria-label="Arquivo">
-      <button type="button" class="icon-btn" data-action="open" aria-label="Abrir arquivo do disco" title="Abrir arquivo (Ctrl+O)"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg></button>
-      <button type="button" class="icon-btn" data-action="save" aria-label="Salvar no disco" title="Salvar no disco (Ctrl+S)"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg></button>
-      <button type="button" class="icon-btn" data-action="export" aria-label="Exportar, compartilhar e importar" title="Exportar / Importar"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg></button>
-      <button type="button" class="icon-btn" data-action="print" aria-label="Imprimir todas as telas" title="Imprimir todas as telas"><svg class="icon" aria-hidden="true"><use href="#i-print"/></svg></button>
-      <button type="button" class="icon-btn" data-action="share" aria-label="Compartilhar projeto" title="Compartilhar projeto"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg></button>
-    </div>
 
     <div class="tb-group" role="group" aria-label="Elemento selecionado">
       <button type="button" id="el-layers" class="icon-btn" data-action="el-layers" aria-label="Camadas" aria-pressed="false" title="Painel de camadas (ordem de empilhamento)"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg></button>
@@ -351,6 +346,12 @@
   <!-- ============ Rodapé padronizado ============ -->
   <footer class="app-footer">
     <p class="footer-tag"><span class="hide-narrow">Alicerce — a base das interfaces de PWAs</span></p>
+    <div class="footer-zoom" role="group" aria-label="Zoom">
+      <button type="button" class="icon-btn" data-action="zoom-out" aria-label="Reduzir zoom" title="Reduzir zoom"><svg class="icon" aria-hidden="true"><use href="#i-zoom-out"/></svg></button>
+      <button type="button" id="tb-zoom-label" class="icon-btn zoom-label" data-action="zoom-100" aria-label="Zoom atual 100%. Ativar para voltar a 100%" title="Voltar a 100%">100%</button>
+      <button type="button" class="icon-btn" data-action="zoom-in" aria-label="Aumentar zoom" title="Aumentar zoom"><svg class="icon" aria-hidden="true"><use href="#i-zoom-in"/></svg></button>
+      <button type="button" class="icon-btn" data-action="fit" aria-label="Ajustar à janela" title="Ajustar à janela"><svg class="icon" aria-hidden="true"><use href="#i-fit"/></svg></button>
+    </div>
     <nav class="footer-links" aria-label="Links do projeto">
       <a class="icon-btn footer-logo" href="https://magpe-stack.github.io/Alicerce/" target="_blank" rel="noopener noreferrer" aria-label="Alicerce — página oficial do app (abre em nova aba)" title="Alicerce">
         <img src="./icon-192.png" alt="" width="28" height="28"><span class="btn-text hide-narrow">Alicerce</span>
@@ -515,7 +516,7 @@
     </div>
     <div class="about-hero">
       <img src="./icon-192.png" alt="" width="72" height="72">
-      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.6.0</span></p>
+      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.6.1</span></p>
     </div>
 
     <h3>Propósito</h3>

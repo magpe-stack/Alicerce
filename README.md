@@ -28,6 +28,7 @@ O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estrut
 ## Recursos
 
 - **Projetos e telas:** vários projetos, cada um com várias telas (Splash, Home, Menu, Perfil…) em abas. Criar, renomear, duplicar e excluir.
+- **Disposição da interface:** abrir, salvar, exportar, imprimir e compartilhar ficam no cabeçalho, entre *Projetos* e o seletor de tema; os controles de zoom ficam no centro do rodapé; a barra de ferramentas guarda histórico, prancheta e ferramentas de elemento (a lixeira fica à vista em telas de 1100 px ou mais).
 - **Prancheta híbrida:** grade magnética (liga/desliga), moldura **Mobile 360×800** ou **Desktop 1280×800**, zoom (botões, `Ctrl`+roda do mouse, pinça no toque) e rolagem.
 - **Espelhar e cantos:** Flip horizontal/vertical (`Shift+H`/`Shift+V`) e controle de cantos retos ou arredondados (predefinições, pílula e cantos independentes), com destaque para containers.
 - **Edição completa:** arrastar, redimensionar pelas 8 alças, duplicar, excluir, trazer para frente / enviar para trás, editar texto com duplo clique (ou duplo toque), seleção múltipla (`Shift`/`Ctrl`+clique).

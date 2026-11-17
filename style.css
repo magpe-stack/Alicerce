@@ -483,11 +483,13 @@ body.inspector-open .inspector {
 
 /* ---------- Rodapé ---------- */
 .app-footer {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; min-height: 52px;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; flex: none; min-height: 52px;
   padding: 4px 10px max(4px, env(safe-area-inset-bottom)); background: var(--surface); border-top: 2px solid var(--divider);
 }
 .footer-tag { font-size: 0.8rem; color: var(--text-muted); }
-.footer-links { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.footer-links { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.footer-zoom { display: flex; align-items: center; justify-content: center; gap: 2px; }
+.hdr-sep { width: 2px; height: 28px; margin: 0 4px; background: currentColor; opacity: .35; flex: none; }
 .footer-logo img { border-radius: 6px; background: #FFFFFF; }
 
 /* ---------- Gaveta ---------- */
@@ -614,6 +616,13 @@ dialog a { color: var(--link); text-decoration: underline; }
 }
 
 /* ---------- Responsividade ---------- */
+@media (max-width: 1279.98px) { .hide-mid { display: none !important; } }
+@media (min-width: 900px) and (max-width: 1049.98px) {
+  .app-header .brand-name { display: none; }
+  .project-name { max-width: 20vw; }
+  .app-header .hdr-select { max-width: 120px; }
+  .hdr-sep { margin: 0 1px; }
+}
 .only-narrow { display: inline-flex; }
 @media (max-width: 899.98px) {
   .hide-narrow { display: none !important; }
