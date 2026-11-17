@@ -29,6 +29,9 @@ O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estrut
 
 - **Projetos e telas:** vários projetos, cada um com várias telas (Splash, Home, Menu, Perfil…) em abas. Criar, renomear, duplicar e excluir.
 - **Disposição da interface:** abrir, salvar, exportar, imprimir e compartilhar ficam no cabeçalho, entre *Projetos* e o seletor de tema; a mãozinha e os controles de zoom ficam no centro do rodapé; a barra de ferramentas guarda histórico, prancheta e ferramentas de elemento (a lixeira fica à vista em telas de 1100 px ou mais).
+- **Barra flutuante:** ao selecionar elementos, uma barra aparece junto da seleção com cadeado, editar texto, cores, copiar, duplicar, frente, trás, espelhar e excluir. Ela some enquanto você arrasta e volta ao soltar. A barra fixa guarda só histórico, prancheta, camadas, selecionar tudo e colar.
+- **Alinhar e distribuir:** com 2 ou mais elementos selecionados, a barra flutuante e o inspetor mostram alinhar (esquerda, centro, direita, topo, meio, base); com 3 ou mais, distribuir na horizontal e na vertical. A referência é a caixa que envolve a seleção; elementos travados contam como referência, mas não se movem.
+- **Grupos:** com 2 ou mais elementos selecionados, `Ctrl+G` (ou o botão de agrupar da barra flutuante) cria um grupo. Clicar em um membro seleciona o grupo todo; mover, travar, espelhar, copiar, duplicar e excluir valem para o conjunto, e uma moldura tracejada mostra a área do grupo. Para editar só um membro, use `Alt`+clique ou clique na linha dele na aba Camadas (que mostra um crachá G1, G2…). Ao alinhar e distribuir, cada grupo conta como uma peça. `Ctrl+Shift+G` desfaz. Grupos com menos de 2 elementos deixam de existir. No modelo de dados, os membros compartilham o campo `g`.
 - **Prancheta híbrida:** grade magnética (liga/desliga), moldura **Mobile 360×800** ou **Desktop 1280×800**, zoom (botões, `Ctrl`+roda do mouse, pinça no toque) e rolagem.
 - **Espelhar e cantos:** Flip horizontal/vertical (`Shift+H`/`Shift+V`) e controle de cantos retos ou arredondados (predefinições, pílula e cantos independentes), com destaque para containers.
 - **Edição completa:** arrastar, redimensionar pelas 8 alças, duplicar, excluir, trazer para frente / enviar para trás, editar texto com duplo clique (ou duplo toque), seleção múltipla (`Shift`/`Ctrl`+clique).
@@ -168,6 +171,9 @@ Quando o Chrome permite a instalação, aparece o botão **Instalar** (no cabeç
 | `Ctrl+]` / `Ctrl+[` | Trazer para frente / enviar para trás |
 | `Shift+H` / `Shift+V` | Espelhar na horizontal / vertical |
 | `Shift+L` | Travar / destravar elemento (cadeado) |
+| `Ctrl+G` | Agrupar os elementos selecionados |
+| `Ctrl+Shift+G` | Desagrupar |
+| `Alt`+clique | Selecionar só um elemento dentro de um grupo |
 | `H` | Mãozinha: liga/desliga a ferramenta de mover o palco |
 | `Ctrl+A` | Selecionar tudo |
 | `Ctrl+Z` / `Ctrl+Y` | Desfazer / refazer (`Ctrl+Shift+Z` também refaz) |

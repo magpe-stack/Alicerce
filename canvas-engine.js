@@ -484,6 +484,63 @@
         if (on && single && !locked) { if (!hs.length) addHandles(node); }
         else hs.forEach(function (x) { x.remove(); });
       });
+      this._groupBoxes();
+    }
+
+    /* Moldura tracejada ao redor de cada grupo que tem algum membro selecionado. */
+    _groupBoxes() {
+      if (this._gbRaf) return;
+      var self = this;
+      this._gbRaf = requestAnimationFrame(function () {
+        self._gbRaf = 0;
+        Array.prototype.forEach.call(self.stage.querySelectorAll('.group-box'), function (b) { b.remove(); });
+        if (!self.screen) return;
+        var gs = {};
+        self.selection.forEach(function (id) { var e = self.find(id); if (e && e.g) gs[e.g] = 1; });
+        Object.keys(gs).forEach(function (g) {
+          var L = Infinity, T = Infinity, R = -Infinity, B = -Infinity, n = 0;
+          self.screen.elements.forEach(function (e) {
+            if (e.g !== g || e.hidden) return;
+            n++; L = Math.min(L, e.x); T = Math.min(T, e.y); R = Math.max(R, e.x + e.w); B = Math.max(B, e.y + e.h);
+          });
+          if (n < 2) return;
+          var d = document.createElement('div');
+          d.className = 'group-box'; d.setAttribute('aria-hidden', 'true');
+          d.style.left = (L - 4) + 'px'; d.style.top = (T - 4) + 'px';
+          d.style.width = (R - L + 8) + 'px'; d.style.height = (B - T + 8) + 'px';
+          self.stage.appendChild(d);
+        });
+      });
+    }
+
+    groupSelected() {
+      var els = this.selectedElements();
+      if (els.length < 2) { this.announce('Selecione 2 ou mais elementos para agrupar.'); return false; }
+      var g = uid();
+      els.forEach(function (e) { e.g = g; });
+      this._decorate();
+      this.cb.onSelection(this.selection.slice());
+      this.cb.onChange(null, 'group');
+      this.announce(els.length + ' elementos agrupados.');
+      return true;
+    }
+
+    ungroupSelected() {
+      var els = this.selectedElements().filter(function (e) { return e.g; });
+      if (!els.length) return false;
+      els.forEach(function (e) { e.g = null; });
+      this._decorate();
+      this.cb.onSelection(this.selection.slice());
+      this.cb.onChange(null, 'ungroup');
+      this.announce('Grupo desfeito. Os elementos voltaram a ser independentes.');
+      return true;
+    }
+
+    /* Grupos com menos de 2 membros deixam de existir. */
+    _cleanGroups() {
+      var cnt = {};
+      this.screen.elements.forEach(function (e) { if (e.g) cnt[e.g] = (cnt[e.g] || 0) + 1; });
+      this.screen.elements.forEach(function (e) { if (e.g && cnt[e.g] < 2) e.g = null; });
     }
 
     _refreshNode(el) {
@@ -501,11 +558,23 @@
       if (!node) return;
       applyGeom(node, el);
       node.setAttribute('aria-label', describe(el));
+      if (el.g) this._groupBoxes();
     }
 
-    select(ids, silent) {
+    /* Grupos: elementos com o mesmo `g` se comportam como uma peça. `exact` seleciona só os ids dados (Alt+clique, camadas). */
+    _withGroups(ids) {
+      var self = this, gs = {}, out = ids.slice();
+      ids.forEach(function (id) { var e = self.find(id); if (e && e.g) gs[e.g] = 1; });
+      if (!Object.keys(gs).length) return out;
+      this.screen.elements.forEach(function (e) { if (e.g && gs[e.g] && out.indexOf(e.id) < 0) out.push(e.id); });
+      return out;
+    }
+
+    select(ids, silent, exact) {
       var self = this;
-      this.selection = (ids || []).filter(function (id) { return !!self.find(id); });
+      ids = (ids || []).filter(function (id) { return !!self.find(id); });
+      if (!exact) ids = this._withGroups(ids);
+      this.selection = ids;
       this._decorate();
       if (!silent) this.cb.onSelection(this.selection.slice());
     }
@@ -603,6 +672,7 @@
       });
       this.selection = kept;
       this._decorate();
+      this._cleanGroups();
       this.cb.onSelection(kept.slice());
       this.cb.onChange(null, 'delete');
       this.announce(ids.length === 1 ? 'Elemento excluído.' : ids.length + ' elementos excluídos.');
@@ -610,13 +680,15 @@
     }
 
     _cloneEls(els, off) {
-      var vp = this.vp;
+      var vp = this.vp, cnt = {}, gmap = {};
+      els.forEach(function (e) { if (e.g) cnt[e.g] = (cnt[e.g] || 0) + 1; });
       return els.map(function (e) {
         var c = {
           id: uid(), type: e.type, text: e.text || '', checked: !!e.checked,
           fill: normHex(e.fill), stroke: normHex(e.stroke), color: normHex(e.color),
           flipH: !!e.flipH, flipV: !!e.flipV, r: normR(e.r), locked: false, hidden: false,
-          w: e.w, h: e.h, x: e.x + off, y: e.y + off
+          w: e.w, h: e.h, x: e.x + off, y: e.y + off,
+          g: (e.g && cnt[e.g] > 1) ? (gmap[e.g] || (gmap[e.g] = uid())) : null
         };
         c.x = clamp(c.x, 0, Math.max(0, vp.w - c.w));
         c.y = clamp(c.y, 0, Math.max(0, vp.h - c.h));
@@ -713,7 +785,7 @@
       if (!els.length) return '';
       this._pasteCount = 0;
       return CLIP_PREFIX + JSON.stringify({
-        elements: els.map(function (e) { return { type: e.type, x: e.x, y: e.y, w: e.w, h: e.h, text: e.text, checked: !!e.checked, fill: e.fill || '', stroke: e.stroke || '', color: e.color || '', flipH: !!e.flipH, flipV: !!e.flipV, r: e.r || null }; })
+        elements: els.map(function (e) { return { type: e.type, x: e.x, y: e.y, w: e.w, h: e.h, text: e.text, checked: !!e.checked, fill: e.fill || '', stroke: e.stroke || '', color: e.color || '', flipH: !!e.flipH, flipV: !!e.flipV, r: e.r || null, g: e.g || null }; })
       });
     }
 
@@ -729,6 +801,7 @@
         return { type: e.type, text: String(e.text || '').slice(0, 2000), checked: !!e.checked,
           fill: normHex(e.fill), stroke: normHex(e.stroke), color: normHex(e.color),
           flipH: !!e.flipH, flipV: !!e.flipV, r: normR(e.r),
+          g: (typeof e.g === 'string' && e.g) ? e.g.slice(0, 40) : null,
           x: num(e.x, 0), y: num(e.y, 0), w: Math.max(MIN_SIZE, num(e.w, 100)), h: Math.max(4, num(e.h, 40)) };
       }), off);
       this._addMany(els);
@@ -828,6 +901,88 @@
       return true;
     }
 
+    /* ---------- alinhar e distribuir ---------- */
+    /* Unidade = um elemento solto ou um grupo inteiro (caixa que envolve os membros). Unidade com
+       algum membro travado não se move, mas continua valendo como referência. */
+    _units(els) {
+      var map = {}, list = [];
+      els.forEach(function (e) {
+        var u;
+        if (e.g) { u = map[e.g]; if (!u) { u = map[e.g] = { els: [] }; list.push(u); } }
+        else { u = { els: [] }; list.push(u); }
+        u.els.push(e);
+      });
+      list.forEach(function (u) {
+        var L = Infinity, T = Infinity, R = -Infinity, B = -Infinity;
+        u.els.forEach(function (e) { L = Math.min(L, e.x); T = Math.min(T, e.y); R = Math.max(R, e.x + e.w); B = Math.max(B, e.y + e.h); });
+        u.x = L; u.y = T; u.w = R - L; u.h = B - T;
+        u.locked = u.els.some(function (e) { return e.locked; });
+      });
+      return list;
+    }
+
+    _moveUnit(u, nx, ny) {
+      var dx = nx - u.x, dy = ny - u.y, self = this;
+      if (!dx && !dy) return false;
+      u.els.forEach(function (e) { e.x += dx; e.y += dy; self._geom(e); });
+      u.x = nx; u.y = ny;
+      return true;
+    }
+
+    alignSelected(mode) {
+      var units = this._units(this.selectedElements());
+      if (units.length < 2) return false;
+      var free = units.filter(function (u) { return !u.locked; });
+      if (units.length > free.length) this.cb.onLocked(units.length - free.length, 'alinhar');
+      if (!free.length) return false;
+      var minX = Infinity, minY = Infinity, maxR = -Infinity, maxB = -Infinity, self = this, moved = 0;
+      units.forEach(function (u) {
+        minX = Math.min(minX, u.x); minY = Math.min(minY, u.y);
+        maxR = Math.max(maxR, u.x + u.w); maxB = Math.max(maxB, u.y + u.h);
+      });
+      free.forEach(function (u) {
+        var nx = u.x, ny = u.y;
+        if (mode === 'left') nx = minX;
+        else if (mode === 'right') nx = maxR - u.w;
+        else if (mode === 'hcenter') nx = Math.round((minX + maxR) / 2 - u.w / 2);
+        else if (mode === 'top') ny = minY;
+        else if (mode === 'bottom') ny = maxB - u.h;
+        else if (mode === 'vcenter') ny = Math.round((minY + maxB) / 2 - u.h / 2);
+        if (self._moveUnit(u, nx, ny)) moved++;
+      });
+      this.cb.onGeometry();
+      if (moved) this.cb.onChange(null, 'align');
+      this.announce(moved ? moved + (moved === 1 ? ' item alinhado.' : ' itens alinhados.') : 'Os itens já estavam alinhados.');
+      return true;
+    }
+
+    /* Espaçamento igual entre as unidades, mantendo as duas das pontas onde estão. Pede 3 ou mais. */
+    distributeSelected(axis) {
+      var units = this._units(this.selectedElements());
+      if (units.length < 3) return false;
+      var horiz = axis !== 'v', self = this, moved = 0;
+      var P = horiz ? 'x' : 'y', S = horiz ? 'w' : 'h';
+      var sorted = units.slice().sort(function (a, b) { return (a[P] + a[S] / 2) - (b[P] + b[S] / 2); });
+      var first = sorted[0], last = sorted[sorted.length - 1];
+      var span = last[P] + last[S] - first[P], sum = 0;
+      sorted.forEach(function (u) { sum += u[S]; });
+      var gap = (span - sum) / (sorted.length - 1);
+      var lockedN = units.filter(function (u) { return u.locked; }).length;
+      if (lockedN) this.cb.onLocked(lockedN, 'distribuir');
+      if (lockedN === units.length) return false;
+      var cursor = first[P];
+      sorted.forEach(function (u) {
+        if (u.locked) { cursor = u[P] + u[S] + gap; return; }
+        var np = Math.round(cursor);
+        if (self._moveUnit(u, horiz ? np : u.x, horiz ? u.y : np)) moved++;
+        cursor += u[S] + gap;
+      });
+      this.cb.onGeometry();
+      if (moved) this.cb.onChange(null, 'align');
+      this.announce(moved ? 'Itens distribuídos na ' + (horiz ? 'horizontal' : 'vertical') + '.' : 'O espaçamento já estava igual.');
+      return true;
+    }
+
     /* ---------- edição de texto ---------- */
     startEdit(id) {
       var el = this.find(id), c = el && COMPONENTS[el.type];
@@ -875,6 +1030,7 @@
       var key = e.key, mod = e.ctrlKey || e.metaKey, lk = key.toLowerCase();
       if (mod && lk === 'a') { this.selectAll(); return true; }
       if (!e.shiftKey && !mod && !e.altKey && lk === 'h') { this.toggleHand(); return true; }
+      if (mod && !e.altKey && lk === 'g') { if (e.shiftKey) this.ungroupSelected(); else this.groupSelected(); return true; }
       if (!this.selection.length) return false;
       if (key === 'Delete' || key === 'Backspace') { this.deleteSelected(); return true; }
       if (key === 'Escape') { this.select([]); this.ws.focus({ preventScroll: true }); return true; }
@@ -1020,8 +1176,11 @@
 
     _beginDrag(e, node) {
       var id = node.dataset.id, multi = e.shiftKey || e.ctrlKey || e.metaKey;
-      if (multi) {
-        if (this.selection.indexOf(id) > -1) this.select(this.selection.filter(function (x) { return x !== id; }));
+      var gm = this._withGroups([id]);
+      if (e.altKey && !multi) {
+        if (this.selection.indexOf(id) < 0 || this.selection.length !== 1) this.select([id], false, true);
+      } else if (multi) {
+        if (this.selection.indexOf(id) > -1) this.select(this.selection.filter(function (x) { return gm.indexOf(x) < 0; }));
         else this.select(this.selection.concat([id]));
       } else if (this.selection.indexOf(id) < 0) {
         this.select([id]);
@@ -1031,7 +1190,7 @@
       this.mode = 'drag';
       var sel = this.selection.map(function (sid) { return self.find(sid); });
       this.drag = {
-        sx: e.clientX, sy: e.clientY, primary: id, moved: false, multi: multi, warned: false,
+        sx: e.clientX, sy: e.clientY, primary: id, moved: false, multi: multi, alt: !!e.altKey, warned: false,
         lockedCount: sel.filter(function (el) { return el.locked; }).length,
         orig: sel.filter(function (el) { return !el.locked; }).map(function (el) { return { id: el.id, x: el.x, y: el.y, w: el.w, h: el.h }; })
       };
@@ -1154,7 +1313,7 @@
           var el = this.find(d.primary);
           if (el) this.announce('Movido para ' + Math.round(el.x) + ', ' + Math.round(el.y) + '.');
         } else if (!cancel && !d.multi && this.selection.length > 1) {
-          this.select([d.primary]);
+          this.select([d.primary], false, this.drag.alt);
         } else if (!cancel && !d.multi && this.selection.length === 1) {
           var now = performance.now();
           if (this._lastTap && this._lastTap.id === d.primary && now - this._lastTap.t < 400) {

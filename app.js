@@ -167,9 +167,13 @@
           flipV: !!e.flipV,
           locked: !!e.locked,
           hidden: !!e.hidden,
-          r: COMPONENTS[e.type].radius ? E.normR(e.r) : null
+          r: COMPONENTS[e.type].radius ? E.normR(e.r) : null,
+          g: (typeof e.g === 'string' && e.g) ? e.g.slice(0, 40) : null
         };
       });
+      var gcnt = {};
+      els.forEach(function (e) { if (e.g) gcnt[e.g] = (gcnt[e.g] || 0) + 1; });
+      els.forEach(function (e) { if (e.g && gcnt[e.g] < 2) e.g = null; });
       return { id: id, name: str(sc.name, 60, 'Tela ' + (i + 1)), elements: els };
     });
     var active = str(raw.activeScreenId, 100, '');
@@ -318,6 +322,7 @@
     updateUndoRedo();
     scheduleSave();
     syncInspector(false);
+    schedulePositionSelBar();
   }
 
   /* ================================================================== diálogos */
@@ -430,11 +435,73 @@
 
   function openInspector(open) {
     document.body.classList.toggle('inspector-open', !!open);
+    schedulePositionSelBar();
     var b = $('el-props');
     b.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) {
       setTimeout(function () { revealSelection(); var t = $('insp-x'); if (t && !$('insp-form').hidden) t.focus({ preventScroll: true }); }, 60);
     }
+  }
+
+  /* ---------- barra flutuante do elemento selecionado ---------- */
+  function positionSelBar() {
+    state.selBarRaf = 0;
+    var bar = $('sel-bar');
+    if (!bar || !engine) return;
+    var busy = engine.mode === 'drag' || engine.mode === 'resize' || engine.mode === 'marquee' || engine.mode === 'pan' || engine.mode === 'pinch' || engine.editing;
+    if (!engine.selection.length || busy) { bar.hidden = true; return; }
+    var L = Infinity, T = Infinity, R = -Infinity, B = -Infinity;
+    engine.selection.forEach(function (id) {
+      var n = engine.nodes.get(id);
+      if (!n || n.classList.contains('is-hidden')) return;
+      var r = n.getBoundingClientRect();
+      L = Math.min(L, r.left); T = Math.min(T, r.top); R = Math.max(R, r.right); B = Math.max(B, r.bottom);
+    });
+    if (L === Infinity) { bar.hidden = true; return; }
+    var wr = $('workspace').getBoundingClientRect();
+    var top = wr.top, bottom = wr.bottom;
+    if (document.body.classList.contains('inspector-open') && window.matchMedia('(max-width: 899.98px)').matches) {
+      bottom = Math.min(bottom, $('inspector').getBoundingClientRect().top);
+    }
+    if (R < wr.left || L > wr.right || B < top || T > bottom) { bar.hidden = true; return; }
+    bar.hidden = false;
+    var bw = bar.offsetWidth, bh = bar.offsetHeight, m = 8;
+    var x = Math.min(Math.max((L + R) / 2 - bw / 2, wr.left + m), Math.max(wr.left + m, wr.right - bw - m));
+    /* Escolhe o lado (abaixo, acima ou rodapé/topo da área visível) que cobre menos elementos. */
+    var others = [];
+    engine.nodes.forEach(function (n, id) {
+      if (engine.selection.indexOf(id) > -1 || n.classList.contains('is-hidden')) return;
+      others.push(n.getBoundingClientRect());
+    });
+    function cost(cy) {
+      var c = 0;
+      if (cy < top + 2 || cy + bh > bottom - 2) c += 1e9;
+      var l = x, r = x + bw, t = cy, b2 = cy + bh;
+      others.forEach(function (o) {
+        var w = Math.min(r, o.right) - Math.max(l, o.left), h = Math.min(b2, o.bottom) - Math.max(t, o.top);
+        if (w > 0 && h > 0) c += w * h;
+      });
+      return c;
+    }
+    var cands = [B + m, T - bh - m, bottom - bh - m, top + m];
+    var y = cands[0], best = Infinity;
+    cands.forEach(function (cy, i) {
+      var c = cost(cy) + i * 0.5;
+      if (c < best) { best = c; y = cy; }
+    });
+    y = Math.min(Math.max(y, top + m), Math.max(top + m, bottom - bh - m));
+    bar.style.left = Math.round(x) + 'px';
+    bar.style.top = Math.round(y) + 'px';
+  }
+  function schedulePositionSelBar() {
+    if (state.selBarRaf) return;
+    state.selBarRaf = requestAnimationFrame(positionSelBar);
+  }
+
+  function buildAlignInspector() {
+    var src = $('sel-align'), row = $('insp-align-row');
+    if (!src || !row) return;
+    Array.prototype.forEach.call(src.querySelectorAll('button'), function (b) { row.appendChild(b.cloneNode(true)); });
   }
 
   function updateSelectionUI(ids) {
@@ -447,6 +514,14 @@
     setDisabled('el-flip-h', n < 1);
     setDisabled('el-flip-v', n < 1);
     setDisabled('el-lock', n < 1);
+    var al = $('sel-align'); if (al) al.hidden = n < 2;
+    var ia = $('insp-align'); if (ia) ia.hidden = n < 2;
+    var gsel = engine.selectedElements(), anyG = gsel.some(function (x) { return x.g; });
+    var gb = $('sel-group'); if (gb) gb.hidden = n < 2 && !anyG;
+    setDisabled('el-group', n < 2);
+    setDisabled('el-ungroup', !anyG);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-action="dist-h"],[data-action="dist-v"]'), function (b) { b.disabled = n < 3; });
+    schedulePositionSelBar();
     if (n < 1 && $('inspector').dataset.tab !== 'layers') openInspector(false);
     syncInspector(true);
     setTimeout(revealSelection, 60);
@@ -459,7 +534,7 @@
     if (els.length !== 1) {
       form.hidden = true;
       empty.hidden = false;
-      empty.textContent = els.length > 1 ? els.length + ' elementos selecionados. Use as ferramentas da barra para duplicar, copiar, ordenar ou excluir, ou aplique cores abaixo.' : 'Selecione um elemento na prancheta para editar suas propriedades e cores.';
+      empty.textContent = els.length > 1 ? els.length + ' elementos selecionados. Use a barra ao lado da seleção para duplicar, copiar, ordenar, alinhar ou excluir, ou aplique cores abaixo.' : 'Selecione um elemento na prancheta para editar suas propriedades e cores.';
       syncColors(els, force);
       syncCorners(els, force);
       syncFlipButtons(els);
@@ -524,11 +599,13 @@
     var list = $('layers-list');
     if (!engine.screen || !list || $('inspector').dataset.tab !== 'layers') return;
     var els = engine.screen.elements, sel = engine.selection;
-    var sig = els.map(function (e) { return [e.id, e.type, layerName(e), e.locked ? 1 : 0, e.hidden ? 1 : 0].join('|'); }).join(';') + '#' + sel.join(',') + '#' + engine.screen.id;
+    var sig = els.map(function (e) { return [e.id, e.type, layerName(e), e.locked ? 1 : 0, e.hidden ? 1 : 0, e.g || ''].join('|'); }).join(';') + '#' + sel.join(',') + '#' + engine.screen.id;
     if (sig === layersSig) return;
     layersSig = sig;
     var act = document.activeElement, keep = act && list.contains(act) ? [act.closest('.layer-row').dataset.id, act.dataset.act || 'main'] : null;
     list.textContent = '';
+    var gnum = {}, gn = 0;
+    els.forEach(function (e) { if (e.g && !gnum[e.g]) { var c = 0; els.forEach(function (o) { if (o.g === e.g) c++; }); if (c > 1) gnum[e.g] = ++gn; } });
     $('layers-empty').hidden = els.length > 0;
     var n = els.length;
     for (var i = n - 1; i >= 0; i--) {
@@ -544,7 +621,7 @@
         main.className = 'layer-main';
         main.dataset.act = 'main';
         main.setAttribute('aria-pressed', isSel ? 'true' : 'false');
-        main.setAttribute('aria-label', 'Camada ' + pos + ' de ' + n + (pos === 1 ? ' (primeiro plano)' : '') + ': ' + c.label + (name !== c.label ? ', ' + name : '') + (el.hidden ? ', oculta' : '') + (el.locked ? ', travada' : ''));
+        main.setAttribute('aria-label', 'Camada ' + pos + ' de ' + n + (pos === 1 ? ' (primeiro plano)' : '') + ': ' + c.label + (name !== c.label ? ', ' + name : '') + (el.hidden ? ', oculta' : '') + (el.locked ? ', travada' : '') + (gnum[el.g] ? ', grupo ' + gnum[el.g] : ''));
         var num = document.createElement('span'); num.className = 'layer-num'; num.textContent = pos; num.setAttribute('aria-hidden', 'true');
         main.appendChild(num);
         main.appendChild(svgIcon(c.icon, 'icon layer-ico'));
@@ -553,6 +630,7 @@
         var ty = document.createElement('span'); ty.className = 'layer-type'; ty.textContent = c.label;
         tx.appendChild(nm); tx.appendChild(ty);
         main.appendChild(tx);
+        if (gnum[el.g]) { var gb = document.createElement('span'); gb.className = 'layer-grp'; gb.textContent = 'G' + gnum[el.g]; gb.title = 'Grupo ' + gnum[el.g]; gb.setAttribute('aria-hidden', 'true'); main.appendChild(gb); }
         li.appendChild(main);
         function btn(act, icon, label, pressed, disabled) {
           var b = document.createElement('button');
@@ -593,8 +671,8 @@
       switch (b.dataset.act) {
         case 'main':
           if (e.shiftKey || e.ctrlKey || e.metaKey) {
-            engine.select(engine.selection.indexOf(id) > -1 ? engine.selection.filter(function (x) { return x !== id; }) : engine.selection.concat([id]));
-          } else engine.select([id]);
+            engine.select(engine.selection.indexOf(id) > -1 ? engine.selection.filter(function (x) { return x !== id; }) : engine.selection.concat([id]), false, true);
+          } else engine.select([id], false, true);
           break;
         case 'hide': engine.setLayerProp(id, 'hidden', !el.hidden); break;
         case 'lock': engine.setLayerProp(id, 'locked', !el.locked); break;
@@ -945,6 +1023,7 @@
     var b = $('tb-zoom-label');
     b.textContent = pct + '%';
     b.setAttribute('aria-label', 'Zoom atual ' + pct + '%. Ativar para voltar a 100%');
+    schedulePositionSelBar();
   }
 
   /* ================================================================== telas */
@@ -1734,6 +1813,16 @@
       openInspector(open);
     },
     'el-delete': function () { engine.deleteSelected(); },
+    'group': function () { engine.groupSelected(); },
+    'ungroup': function () { engine.ungroupSelected(); },
+    'align-left': function () { engine.alignSelected('left'); },
+    'align-hcenter': function () { engine.alignSelected('hcenter'); },
+    'align-right': function () { engine.alignSelected('right'); },
+    'align-top': function () { engine.alignSelected('top'); },
+    'align-vcenter': function () { engine.alignSelected('vcenter'); },
+    'align-bottom': function () { engine.alignSelected('bottom'); },
+    'dist-h': function () { engine.distributeSelected('h'); },
+    'dist-v': function () { engine.distributeSelected('v'); },
     'screen-add': addScreen,
     'screen-rename': renameScreen,
     'screen-dup': duplicateScreen,
@@ -1939,7 +2028,7 @@
       callbacks: {
         onChange: function (tag) { commit(tag); },
         onSelection: updateSelectionUI,
-        onGeometry: function () { syncInspector(false); },
+        onGeometry: function () { syncInspector(false); schedulePositionSelBar(); },
         onZoom: onZoom,
         onHand: function (on) {
           var b = $('tb-hand');
@@ -1965,6 +2054,10 @@
     buildSwatches();
     buildCorners();
     bindLayers();
+    buildAlignInspector();
+    $('workspace').addEventListener('scroll', schedulePositionSelBar, { passive: true });
+    ['pointerup', 'pointercancel'].forEach(function (t) { $('workspace').addEventListener(t, function () { setTimeout(schedulePositionSelBar, 0); }); });
+    window.addEventListener('resize', schedulePositionSelBar);
     bindInspector();
     bindClipboardEvents();
     bindUI();
