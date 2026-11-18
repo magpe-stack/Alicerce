@@ -958,6 +958,51 @@
       Array.prototype.forEach.call(this.stage.querySelectorAll('.snap-guide'), function (n) { n.remove(); });
     }
 
+    /* ---------- componentes salvos ---------- */
+    /* Gera um molde com os elementos selecionados, em coordenadas relativas ao canto da caixa que os envolve. */
+    snippetFromSelection() {
+      var els = this.selectedElements();
+      if (!els.length) return null;
+      var L = Infinity, T = Infinity, R = -Infinity, B = -Infinity, cnt = {};
+      els.forEach(function (e) { L = Math.min(L, e.x); T = Math.min(T, e.y); R = Math.max(R, e.x + e.w); B = Math.max(B, e.y + e.h); if (e.g) cnt[e.g] = (cnt[e.g] || 0) + 1; });
+      var order = this.screen.elements.filter(function (e) { return els.indexOf(e) > -1; }); // mantém a ordem das camadas
+      return {
+        w: Math.round(R - L), h: Math.round(B - T),
+        elements: order.map(function (e) {
+          return { type: e.type, x: Math.round(e.x - L), y: Math.round(e.y - T), w: e.w, h: e.h, text: e.text || '', checked: !!e.checked,
+            fill: e.fill || '', stroke: e.stroke || '', color: e.color || '', flipH: !!e.flipH, flipV: !!e.flipV, r: e.r || null,
+            g: (e.g && cnt[e.g] > 1) ? e.g : null };
+        })
+      };
+    }
+
+    /* Insere um molde com ids novos. `pos` = centro desejado (coordenadas do palco); sem `pos`, usa o centro visível. */
+    insertSnippet(snip, pos) {
+      if (!snip || !snip.elements || !snip.elements.length || !this.screen) return null;
+      var vp = this.vp, gmap = {}, w = Math.min(snip.w, vp.w), h = Math.min(snip.h, vp.h), p = pos;
+      if (!p) {
+        p = this._visibleCenter();
+        this._cascade = (this._cascade + 1) % 8;
+        p = { x: p.x + this._cascade * 16 - 56, y: p.y + this._cascade * 16 - 56 };
+      }
+      var ox = clamp(this._snapV(p.x - snip.w / 2), 0, Math.max(0, vp.w - w));
+      var oy = clamp(this._snapV(p.y - snip.h / 2), 0, Math.max(0, vp.h - h));
+      var list = snip.elements.filter(function (e) { return COMPONENTS[e.type]; }).map(function (e) {
+        var c = COMPONENTS[e.type];
+        return { id: uid(), type: e.type, x: ox + num(e.x, 0), y: oy + num(e.y, 0),
+          w: Math.max(MIN_SIZE, num(e.w, c.w)), h: Math.max(4, num(e.h, c.h)),
+          text: String(e.text || '').slice(0, 2000), checked: !!e.checked,
+          fill: normHex(e.fill), stroke: normHex(e.stroke), color: normHex(e.color),
+          flipH: !!e.flipH, flipV: !!e.flipV, r: normR(e.r), locked: false, hidden: false,
+          g: (typeof e.g === 'string' && e.g) ? (gmap[e.g] || (gmap[e.g] = uid())) : null };
+      });
+      if (!list.length) return null;
+      this._addMany(list);
+      this.cb.onChange(null, 'snippet');
+      this.announce(list.length === 1 ? 'Componente salvo inserido.' : 'Componente salvo inserido com ' + list.length + ' elementos.');
+      return list;
+    }
+
     /* ---------- alinhar e distribuir ---------- */
     /* Unidade = um elemento solto ou um grupo inteiro (caixa que envolve os membros). Unidade com
        algum membro travado não se move, mas continua valendo como referência. */

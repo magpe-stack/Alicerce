@@ -28,6 +28,7 @@
   var HISTORY_LIMIT = 100;
 
   var state = {
+    snippets: [],
     project: null,
     hist: { stack: [], idx: 0 },
     lastTag: null,
@@ -465,6 +466,7 @@
     }
     if (R < wr.left || L > wr.right || B < top || T > bottom) { bar.hidden = true; return; }
     bar.hidden = false;
+    bar.style.maxWidth = Math.max(240, Math.min(window.innerWidth - 16, wr.width - 16)) + 'px';
     var bw = bar.offsetWidth, bh = bar.offsetHeight, m = 8;
     var x = Math.min(Math.max((L + R) / 2 - bw / 2, wr.left + m), Math.max(wr.left + m, wr.right - bw - m));
     /* Escolhe o lado (abaixo, acima ou rodapé/topo da área visível) que cobre menos elementos. */
@@ -514,6 +516,7 @@
     setDisabled('el-flip-h', n < 1);
     setDisabled('el-flip-v', n < 1);
     setDisabled('el-lock', n < 1);
+    var sa = $('saved-add'); if (sa) sa.disabled = n < 1;
     var al = $('sel-align'); if (al) al.hidden = n < 2;
     var ia = $('insp-align'); if (ia) ia.hidden = n < 2;
     var gsel = engine.selectedElements(), anyG = gsel.some(function (x) { return x.g; });
@@ -1294,6 +1297,8 @@
     try {
       if (data && (data.kind === 'backup' || Array.isArray(data.projects))) {
         await restoreBackup(data.projects);
+        var addedSn = await mergeSnippets(data.snippets);
+        if (addedSn) toast(addedSn + (addedSn === 1 ? ' componente salvo restaurado.' : ' componentes salvos restaurados.'));
         return;
       }
       var project = normalizeProject(data && data.project ? data.project : data);
@@ -1420,7 +1425,7 @@
     await flushSave();
     var list = await S.getAllProjects();
     if (!list.length) { toast('Não há projetos para exportar.', 'error'); return; }
-    var text = JSON.stringify({ app: 'alicerce', kind: 'backup', version: 1, exportedAt: new Date().toISOString(), projects: list }, null, 2);
+    var text = JSON.stringify({ app: 'alicerce', kind: 'backup', version: 1, exportedAt: new Date().toISOString(), projects: list, snippets: state.snippets || [] }, null, 2);
     var name = 'alicerce-backup-' + dateStamp() + '.json';
     if ('showSaveFilePicker' in window) {
       try {
@@ -1679,6 +1684,7 @@
       g.types.forEach(function (type) { addPaletteItem(list, type); });
     });
     buildPaletteEvents(list);
+    buildPaletteEvents($('saved-list'));
   }
 
   function addPaletteItem(list, type) {
@@ -1698,12 +1704,18 @@
     }
   }
 
+  function snippetById(id) { return (state.snippets || []).filter(function (x) { return x.id === id; })[0]; }
+  function placePaletteItem(b, pos) {
+    if (b.dataset.snippet) engine.insertSnippet(snippetById(b.dataset.snippet), pos);
+    else engine.addElement(b.dataset.type, pos);
+  }
+
   function buildPaletteEvents(list) {
     list.addEventListener('click', function (e) {
       var b = e.target.closest('.palette-item');
       if (!b) return;
       if (state.suppressClick) { state.suppressClick = false; return; }
-      engine.addElement(b.dataset.type);
+      placePaletteItem(b);
     });
 
     var drag = null;
@@ -1719,8 +1731,10 @@
         if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 8) return;
         var g = document.createElement('div');
         g.className = 'drag-ghost';
-        g.appendChild(svgIcon(COMPONENTS[drag.b.dataset.type].icon));
-        g.appendChild(document.createTextNode(COMPONENTS[drag.b.dataset.type].label));
+        var sdrag = drag.b.dataset.snippet ? snippetById(drag.b.dataset.snippet) : null;
+        if (drag.b.dataset.snippet && !sdrag) { drag = null; return; }
+        g.appendChild(svgIcon(sdrag ? COMPONENTS[sdrag.elements[0].type].icon : COMPONENTS[drag.b.dataset.type].icon));
+        g.appendChild(document.createTextNode(sdrag ? sdrag.name : COMPONENTS[drag.b.dataset.type].label));
         document.body.appendChild(g);
         document.body.classList.add('is-dragging');
         drag.ghost = g;
@@ -1741,11 +1755,133 @@
       if (cancel) return;
       var over = document.elementFromPoint(e.clientX, e.clientY);
       if (over && over.closest('#workspace')) {
-        engine.addElement(d.b.dataset.type, engine.clientToStage(e.clientX, e.clientY));
+        placePaletteItem(d.b, engine.clientToStage(e.clientX, e.clientY));
       }
     };
     list.addEventListener('pointerup', function (e) { end(e, false); });
     list.addEventListener('pointercancel', function (e) { end(e, true); });
+  }
+
+  /* ================================================================== componentes salvos */
+  var SNIP_KEY = 'alicerce.snippets', SNIP_MAX = 60;
+
+  function cleanSnippet(raw) {
+    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.elements)) return null;
+    var els = raw.elements.slice(0, 200).filter(function (e) { return e && typeof e === 'object' && COMPONENTS[e.type]; }).map(function (e) {
+      return {
+        type: e.type, x: numIn(e.x, -8000, 8000, 0), y: numIn(e.y, -8000, 8000, 0),
+        w: numIn(e.w, E.MIN_SIZE, 8000, COMPONENTS[e.type].w), h: numIn(e.h, 4, 8000, COMPONENTS[e.type].h),
+        text: typeof e.text === 'string' ? e.text.slice(0, 2000) : '', checked: !!e.checked,
+        fill: E.normHex(e.fill), stroke: E.normHex(e.stroke), color: E.normHex(e.color),
+        flipH: !!e.flipH, flipV: !!e.flipV, r: COMPONENTS[e.type].radius ? E.normR(e.r) : null,
+        g: (typeof e.g === 'string' && e.g) ? e.g.slice(0, 40) : null
+      };
+    });
+    if (!els.length) return null;
+    var cnt = {};
+    els.forEach(function (e) { if (e.g) cnt[e.g] = (cnt[e.g] || 0) + 1; });
+    els.forEach(function (e) { if (e.g && cnt[e.g] < 2) e.g = null; });
+    return { id: str(raw.id, 100, '') || E.uid(), name: str(raw.name, 80, 'Componente'), w: numIn(raw.w, 1, 8000, 100), h: numIn(raw.h, 1, 8000, 40), createdAt: numIn(raw.createdAt, 0, 8.64e15, Date.now()), elements: els };
+  }
+
+  async function loadSnippets() {
+    state.snippets = [];
+    try {
+      var raw = await S.getMeta(SNIP_KEY);
+      if (Array.isArray(raw)) state.snippets = raw.slice(0, SNIP_MAX).map(cleanSnippet).filter(Boolean);
+    } catch (e) { /* sem IndexedDB: a lista fica só na memória desta sessão */ }
+    renderSnippets();
+  }
+
+  async function persistSnippets() {
+    try { await S.setMeta(SNIP_KEY, state.snippets); }
+    catch (e) { toast('Não foi possível guardar os componentes salvos neste navegador: ' + errMsg(e), 'error'); }
+  }
+
+  function renderSnippets() {
+    var list = $('saved-list'), sn = state.snippets || [];
+    if (!list) return;
+    list.textContent = '';
+    $('saved-empty').hidden = sn.length > 0;
+    $('saved-count').textContent = sn.length ? '(' + sn.length + ')' : '';
+    sn.forEach(function (sp) {
+      var row = document.createElement('div');
+      row.className = 'saved-row';
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'palette-item'; b.dataset.snippet = sp.id;
+      b.setAttribute('aria-label', 'Inserir componente salvo ' + sp.name + ', ' + sp.elements.length + (sp.elements.length === 1 ? ' elemento' : ' elementos'));
+      b.title = 'Inserir "' + sp.name + '" (clique ou arraste)';
+      b.appendChild(svgIcon(COMPONENTS[sp.elements[0].type].icon));
+      var tx = document.createElement('span'); tx.textContent = sp.name; b.appendChild(tx);
+      var n = document.createElement('span'); n.className = 'saved-n'; n.textContent = sp.elements.length + (sp.elements.length === 1 ? ' elem.' : ' elems.'); n.setAttribute('aria-hidden', 'true'); b.appendChild(n);
+      row.appendChild(b);
+      var acts = document.createElement('div'); acts.className = 'saved-acts';
+      [['snippet-rename', 'i-edit', 'Renomear'], ['snippet-delete', 'i-trash', 'Excluir']].forEach(function (a) {
+        var x = document.createElement('button');
+        x.type = 'button'; x.className = 'saved-act'; x.dataset.action = a[0]; x.dataset.id = sp.id;
+        x.title = a[2] + ' "' + sp.name + '"'; x.setAttribute('aria-label', a[2] + ' componente salvo ' + sp.name);
+        x.appendChild(svgIcon(a[1]));
+        acts.appendChild(x);
+      });
+      row.appendChild(acts);
+      list.appendChild(row);
+    });
+  }
+
+  function setPaletteTab(saved) {
+    $('ptab-std').setAttribute('aria-selected', saved ? 'false' : 'true');
+    $('ptab-saved').setAttribute('aria-selected', saved ? 'true' : 'false');
+    $('palette-list').hidden = !!saved;
+    $('saved-panel').hidden = !saved;
+  }
+
+  async function saveSnippet() {
+    var snip = engine.snippetFromSelection();
+    if (!snip) { toast('Selecione elementos na tela para salvar como componente.', 'error'); return; }
+    if (state.snippets.length >= SNIP_MAX) { toast('Limite de ' + SNIP_MAX + ' componentes salvos. Exclua algum para salvar outro.', 'error'); return; }
+    var first = engine.selectedElements()[0];
+    var def = snip.elements.length === 1 ? layerName(first) : 'Componente ' + (state.snippets.length + 1);
+    var name = await promptDialog({ title: 'Salvar como componente', label: 'Nome do componente', value: def, okText: 'Salvar' });
+    if (name === null || !name) return;
+    var rec = cleanSnippet(Object.assign({ id: E.uid(), name: name, createdAt: Date.now() }, snip));
+    if (!rec) return;
+    state.snippets.unshift(rec);
+    renderSnippets();
+    await persistSnippets();
+    toast('Componente "' + rec.name + '" salvo. Ele está na aba Salvos da paleta e vale para todos os projetos.');
+    announce('Componente ' + rec.name + ' salvo.');
+  }
+
+  async function renameSnippet(id) {
+    var sp = state.snippets.filter(function (x) { return x.id === id; })[0];
+    if (!sp) return;
+    var name = await promptDialog({ title: 'Renomear componente salvo', label: 'Nome do componente', value: sp.name, okText: 'Renomear' });
+    if (!name) return;
+    sp.name = name.slice(0, 80);
+    renderSnippets();
+    await persistSnippets();
+  }
+
+  async function deleteSnippet(id) {
+    var sp = state.snippets.filter(function (x) { return x.id === id; })[0];
+    if (!sp) return;
+    var c = await confirmDialog({ title: 'Excluir componente salvo', message: 'Excluir o componente "' + sp.name + '" da sua biblioteca? Os projetos que já o usam não mudam.', ok: 'Excluir', danger: true });
+    if (c !== 'ok') return;
+    state.snippets = state.snippets.filter(function (x) { return x.id !== id; });
+    renderSnippets();
+    await persistSnippets();
+    toast('Componente "' + sp.name + '" excluído.');
+  }
+
+  async function mergeSnippets(rawList) {
+    if (!Array.isArray(rawList)) return 0;
+    var add = 0;
+    rawList.slice(0, SNIP_MAX).map(cleanSnippet).filter(Boolean).forEach(function (sp) {
+      if (state.snippets.some(function (x) { return x.id === sp.id; })) return;
+      if (state.snippets.length < SNIP_MAX) { state.snippets.push(sp); add++; }
+    });
+    if (add) { renderSnippets(); await persistSnippets(); }
+    return add;
   }
 
   /* ================================================================== ações */
@@ -1820,6 +1956,11 @@
       openInspector(open);
     },
     'el-delete': function () { engine.deleteSelected(); },
+    'ptab-std': function () { setPaletteTab(false); },
+    'ptab-saved': function () { setPaletteTab(true); },
+    'snippet-save': saveSnippet,
+    'snippet-rename': function (btn) { renameSnippet(btn.dataset.id); },
+    'snippet-delete': function (btn) { deleteSnippet(btn.dataset.id); },
     'group': function () { engine.groupSelected(); },
     'ungroup': function () { engine.ungroupSelected(); },
     'align-left': function () { engine.alignSelected('left'); },
@@ -2061,6 +2202,7 @@
     $('tb-grid').setAttribute('aria-pressed', gridOn ? 'true' : 'false');
 
     buildPalette();
+    loadSnippets();
     buildSwatches();
     buildCorners();
     bindLayers();
