@@ -2000,22 +2000,19 @@
     return c;
   }
 
-  /* Folha única com TODAS as telas do projeto */
-  function renderSheetCanvas(project) {
+  function sheetLayout(project) {
     var vp = VIEWPORTS[project.viewport] || VIEWPORTS.mobile;
     var n = project.screens.length, pad = 48, gap = 48, titleH = 44, headH = 72, maxRow = 4800;
     var cols = Math.max(1, Math.min(n, Math.floor((maxRow - pad * 2 + gap) / (vp.w + gap))));
     var rows = Math.ceil(n / cols);
-    var W = pad * 2 + cols * vp.w + (cols - 1) * gap;
-    var H = pad * 2 + headH + rows * (vp.h + titleH) + (rows - 1) * gap;
-    var scale = Math.min(2, 16000 / W, 16000 / H, Math.sqrt(120e6 / (W * H)));
-    var c = document.createElement('canvas');
-    c.width = Math.floor(W * scale);
-    c.height = Math.floor(H * scale);
-    var ctx = c.getContext('2d');
-    ctx.scale(scale, scale);
+    return { vp: vp, n: n, pad: pad, gap: gap, titleH: titleH, headH: headH, cols: cols, rows: rows,
+      W: pad * 2 + cols * vp.w + (cols - 1) * gap, H: pad * 2 + headH + rows * (vp.h + titleH) + (rows - 1) * gap };
+  }
+
+  function paintSheet(ctx, project, L) {
+    var vp = L.vp, n = L.n, pad = L.pad, gap = L.gap, titleH = L.titleH, headH = L.headH, cols = L.cols;
     ctx.fillStyle = '#F3F4F7';
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, L.W, L.H);
     ctx.fillStyle = INK; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     ctx.font = '700 28px ' + FONT;
     ctx.fillText(project.name + ' — Alicerce', pad, pad + 28);
@@ -2034,7 +2031,149 @@
       ctx.strokeStyle = INK; ctx.lineWidth = 2;
       ctx.strokeRect(x - 1, y + titleH - 1, vp.w + 2, vp.h + 2);
     });
+  }
+
+  /* Folha única com TODAS as telas do projeto */
+  function renderSheetCanvas(project) {
+    var L = sheetLayout(project), W = L.W, H = L.H;
+    var scale = Math.min(2, 16000 / W, 16000 / H, Math.sqrt(120e6 / (W * H)));
+    var c = document.createElement('canvas');
+    c.width = Math.floor(W * scale);
+    c.height = Math.floor(H * scale);
+    var ctx = c.getContext('2d');
+    ctx.scale(scale, scale);
+    paintSheet(ctx, project, L);
     return c;
+  }
+
+  /* ------------------------------------------------------------------ Exportação vetorial (SVG) */
+  /* Contexto de desenho que grava as chamadas do canvas 2D e as converte em marcação SVG. */
+  function SvgCtx(W, H) {
+    this.W = W; this.H = H; this.out = []; this.defs = []; this.clipN = 0;
+    this.st = { fillStyle: '#000', strokeStyle: '#000', lineWidth: 1, lineCap: 'butt', lineJoin: 'miter', globalAlpha: 1, font: '10px sans-serif', textAlign: 'left', textBaseline: 'alphabetic' };
+    this.stack = []; this.open = [0]; this.d = ''; this.cx = 0; this.cy = 0;
+    this._m = document.createElement('canvas').getContext('2d');
+    this.fillStyle = '#000'; this.strokeStyle = '#000'; this.lineWidth = 1; this.lineCap = 'butt'; this.lineJoin = 'miter';
+    this.globalAlpha = 1; this.textAlign = 'left'; this.textBaseline = 'alphabetic';
+    this._font = '10px sans-serif';
+  }
+  function xesc(v) { return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function nf(n) { return String(Math.round(n * 1000) / 1000); }
+  SvgCtx.prototype = {
+    get font() { return this._font; },
+    set font(v) { this._font = v; this._m.font = v; },
+    measureText: function (t) { return this._m.measureText(t); },
+    _snap: function () { return { fillStyle: this.fillStyle, strokeStyle: this.strokeStyle, lineWidth: this.lineWidth, lineCap: this.lineCap, lineJoin: this.lineJoin, globalAlpha: this.globalAlpha, font: this._font, textAlign: this.textAlign, textBaseline: this.textBaseline }; },
+    save: function () { this.stack.push(this._snap()); this.open.push(0); },
+    restore: function () {
+      var n = this.open.pop() || 0; while (n--) this.out.push('</g>');
+      var s = this.stack.pop();
+      if (s) { this.fillStyle = s.fillStyle; this.strokeStyle = s.strokeStyle; this.lineWidth = s.lineWidth; this.lineCap = s.lineCap; this.lineJoin = s.lineJoin; this.globalAlpha = s.globalAlpha; this.font = s.font; this.textAlign = s.textAlign; this.textBaseline = s.textBaseline; }
+      if (!this.open.length) this.open.push(0);
+    },
+    _g: function (attrs) { this.out.push('<g ' + attrs + '>'); this.open[this.open.length - 1]++; },
+    translate: function (x, y) { this._g('transform="translate(' + nf(x) + ' ' + nf(y) + ')"'); },
+    scale: function (a, b) { this._g('transform="scale(' + nf(a) + ' ' + nf(b == null ? a : b) + ')"'); },
+    beginPath: function () { this.d = ''; },
+    moveTo: function (x, y) { this.d += 'M' + nf(x) + ' ' + nf(y); this.cx = x; this.cy = y; },
+    lineTo: function (x, y) { this.d += (this.d ? 'L' : 'M') + nf(x) + ' ' + nf(y); this.cx = x; this.cy = y; },
+    closePath: function () { if (this.d) this.d += 'Z'; },
+    rect: function (x, y, w, h) { this.d += 'M' + nf(x) + ' ' + nf(y) + 'h' + nf(w) + 'v' + nf(h) + 'h' + nf(-w) + 'Z'; this.cx = x; this.cy = y; },
+    arcTo: function (x1, y1, x2, y2, r) {
+      var x0 = this.cx, y0 = this.cy;
+      var ax = x0 - x1, ay = y0 - y1, bx = x2 - x1, by = y2 - y1, la = Math.hypot(ax, ay), lb = Math.hypot(bx, by);
+      if (!this.d || !r || !la || !lb) { this.lineTo(x1, y1); return; }
+      ax /= la; ay /= la; bx /= lb; by /= lb;
+      var cross = (-ax) * by - (-ay) * bx, dot = ax * bx + ay * by;
+      if (Math.abs(cross) < 1e-6) { this.lineTo(x1, y1); return; }
+      var ang = Math.acos(Math.max(-1, Math.min(1, dot))), dd = r / Math.tan(ang / 2);
+      var t0x = x1 + ax * dd, t0y = y1 + ay * dd, t1x = x1 + bx * dd, t1y = y1 + by * dd;
+      this.d += 'L' + nf(t0x) + ' ' + nf(t0y) + 'A' + nf(r) + ' ' + nf(r) + ' 0 0 ' + (cross > 0 ? 1 : 0) + ' ' + nf(t1x) + ' ' + nf(t1y);
+      this.cx = t1x; this.cy = t1y;
+    },
+    arc: function (x, y, r, a0, a1, ccw) {
+      var TAU = Math.PI * 2, delta;
+      if (!ccw) { delta = a1 - a0; if (delta >= TAU) delta = TAU; else { delta %= TAU; if (delta < 0) delta += TAU; } }
+      else { delta = a0 - a1; if (delta >= TAU) delta = TAU; else { delta %= TAU; if (delta < 0) delta += TAU; } delta = -delta; }
+      var sx = x + r * Math.cos(a0), sy = y + r * Math.sin(a0);
+      this.d += (this.d ? 'L' : 'M') + nf(sx) + ' ' + nf(sy);
+      var steps = Math.max(1, Math.ceil(Math.abs(delta) / (Math.PI / 2))), k;
+      for (k = 1; k <= steps; k++) {
+        var a = a0 + delta * k / steps, ex = x + r * Math.cos(a), ey = y + r * Math.sin(a);
+        this.d += 'A' + nf(r) + ' ' + nf(r) + ' 0 0 ' + (delta > 0 ? 1 : 0) + ' ' + nf(ex) + ' ' + nf(ey);
+        this.cx = ex; this.cy = ey;
+      }
+    },
+    _op: function () { return this.globalAlpha < 1 ? ' opacity="' + nf(this.globalAlpha) + '"' : ''; },
+    fill: function () { if (this.d) this.out.push('<path d="' + this.d + '" fill="' + xesc(this.fillStyle) + '"' + this._op() + '/>'); },
+    stroke: function () {
+      if (this.d) this.out.push('<path d="' + this.d + '" fill="none" stroke="' + xesc(this.strokeStyle) + '" stroke-width="' + nf(this.lineWidth) + '" stroke-linecap="' + this.lineCap + '" stroke-linejoin="' + this.lineJoin + '"' + this._op() + '/>');
+    },
+    fillRect: function (x, y, w, h) { this.out.push('<rect x="' + nf(x) + '" y="' + nf(y) + '" width="' + nf(w) + '" height="' + nf(h) + '" fill="' + xesc(this.fillStyle) + '"' + this._op() + '/>'); },
+    strokeRect: function (x, y, w, h) { this.out.push('<rect x="' + nf(x) + '" y="' + nf(y) + '" width="' + nf(w) + '" height="' + nf(h) + '" fill="none" stroke="' + xesc(this.strokeStyle) + '" stroke-width="' + nf(this.lineWidth) + '"' + this._op() + '/>'); },
+    clip: function () {
+      var id = 'c' + (++this.clipN);
+      this.defs.push('<clipPath id="' + id + '"><path d="' + this.d + '"/></clipPath>');
+      this._g('clip-path="url(#' + id + ')"');
+    },
+    fillText: function (t, x, y) {
+      if (t == null || t === '') return;
+      var m = /^\s*(italic\s+)?(?:(bold|normal|[1-9]00)\s+)?(\d+(?:\.\d+)?)px\s+(.+)$/.exec(this._font) || [];
+      var anchor = { left: 'start', start: 'start', right: 'end', end: 'end', center: 'middle' }[this.textAlign] || 'start';
+      var base = { middle: 'central', top: 'text-before-edge', hanging: 'text-before-edge', bottom: 'text-after-edge', alphabetic: 'alphabetic', ideographic: 'alphabetic' }[this.textBaseline] || 'alphabetic';
+      this.out.push('<text x="' + nf(x) + '" y="' + nf(y) + '" fill="' + xesc(this.fillStyle) + '" font-family="' + xesc(m[4] || 'sans-serif') + '" font-size="' + (m[3] || 10) + '"' +
+        (m[2] && m[2] !== 'normal' ? ' font-weight="' + m[2] + '"' : '') + (m[1] ? ' font-style="italic"' : '') +
+        ' text-anchor="' + anchor + '" dominant-baseline="' + base + '"' + this._op() + ' xml:space="preserve">' + xesc(t) + '</text>');
+    },
+    toString: function (title) {
+      var n = 0; this.open.forEach(function (c) { n += c; });
+      return '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="' + this.W + '" height="' + this.H + '" viewBox="0 0 ' + this.W + ' ' + this.H + '">' +
+        (title ? '<title>' + xesc(title) + '</title>' : '') + '<defs>' + this.defs.join('') + '</defs>\n' + this.out.join('\n') + new Array(n + 1).join('</g>') + '\n</svg>\n';
+    }
+  };
+
+  function renderScreenSvg(screen, vpKey) {
+    var vp = VIEWPORTS[vpKey] || VIEWPORTS.mobile, c = new SvgCtx(vp.w, vp.h);
+    drawScreen(c, screen, vp);
+    return c.toString(screen.name + ' — Alicerce');
+  }
+  function renderSheetSvg(project) {
+    var L = sheetLayout(project), c = new SvgCtx(L.W, L.H);
+    paintSheet(c, project, L);
+    return c.toString(project.name + ' — Alicerce');
+  }
+
+  /* ------------------------------------------------------------------ Exportação PDF (uma tela por página, imagem JPEG) */
+  function renderPdfBytes(project, screens) {
+    var vp = VIEWPORTS[project.viewport] || VIEWPORTS.mobile, k = 0.75;
+    var pw = Math.round(vp.w * k * 100) / 100, ph = Math.round(vp.h * k * 100) / 100;
+    var enc = function (str) { var u = new Uint8Array(str.length); for (var i = 0; i < str.length; i++) u[i] = str.charCodeAt(i) & 255; return u; };
+    var chunks = [], pos = 0, offs = [];
+    function put(x) { var u = typeof x === 'string' ? enc(x) : x; chunks.push(u); pos += u.length; }
+    function obj(n, body) { offs[n] = pos; put(n + ' 0 obj\n'); if (typeof body === 'string') put(body); else body(); put('\nendobj\n'); }
+    var N = screens.length, imgs = screens.map(function (sc) {
+      var cv = renderScreenCanvas(sc, project.viewport, 2), b64 = cv.toDataURL('image/jpeg', 0.92).split(',')[1], bin = atob(b64), u = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      return { w: cv.width, h: cv.height, data: u };
+    });
+    put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+    obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+    var kids = []; for (var i = 0; i < N; i++) kids.push((3 + i * 3) + ' 0 R');
+    obj(2, '<< /Type /Pages /Count ' + N + ' /Kids [' + kids.join(' ') + '] >>');
+    imgs.forEach(function (im, i) {
+      var pn = 3 + i * 3, cn = pn + 1, xn = pn + 2, content = 'q ' + pw + ' 0 0 ' + ph + ' 0 0 cm /Im0 Do Q';
+      obj(pn, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pw + ' ' + ph + '] /Resources << /XObject << /Im0 ' + xn + ' 0 R >> >> /Contents ' + cn + ' 0 R >>');
+      obj(cn, '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream');
+      obj(xn, function () {
+        put('<< /Type /XObject /Subtype /Image /Width ' + im.w + ' /Height ' + im.h + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + im.data.length + ' >>\nstream\n');
+        put(im.data); put('\nendstream');
+      });
+    });
+    var total = 3 + N * 3, xref = pos;
+    put('xref\n0 ' + total + '\n0000000000 65535 f \n');
+    for (var n = 1; n < total; n++) put(('0000000000' + offs[n]).slice(-10) + ' 00000 n \n');
+    put('trailer\n<< /Size ' + total + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+    return new Blob(chunks, { type: 'application/pdf' });
   }
 
   /* ------------------------------------------------------------------ Impressão */
@@ -2079,6 +2218,9 @@
     colorInfo: colorInfo,
     renderScreenCanvas: renderScreenCanvas,
     renderSheetCanvas: renderSheetCanvas,
+    renderScreenSvg: renderScreenSvg,
+    renderSheetSvg: renderSheetSvg,
+    renderPdfBytes: renderPdfBytes,
     buildPrintArea: buildPrintArea
   };
 })(window);

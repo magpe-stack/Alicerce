@@ -1662,6 +1662,24 @@
     } catch (e) { toast(errMsg(e), 'error'); }
   }
 
+  async function exportSvg(all) {
+    var p = state.project;
+    try {
+      var text = all ? E.renderSheetSvg(p) : E.renderScreenSvg(activeScreen(), p.viewport);
+      downloadBlob(new Blob([text], { type: 'image/svg+xml' }), slug(p.name) + (all ? '-todas-as-telas' : '-' + slug(activeScreen().name)) + '.svg');
+      toast(all ? 'SVG com todas as telas exportado.' : 'SVG da tela exportado.');
+    } catch (e) { toast(errMsg(e), 'error'); }
+  }
+
+  async function exportPdf(all) {
+    var p = state.project;
+    try {
+      var blob = E.renderPdfBytes(p, all ? p.screens : [activeScreen()]);
+      downloadBlob(blob, slug(p.name) + (all ? '' : '-' + slug(activeScreen().name)) + '.pdf');
+      toast(all ? 'PDF com ' + p.screens.length + (p.screens.length === 1 ? ' página exportado.' : ' páginas exportado.') : 'PDF da tela exportado.');
+    } catch (e) { toast(errMsg(e), 'error'); }
+  }
+
   async function backupAll() {
     await flushSave();
     var list = await S.getAllProjects();
@@ -2170,6 +2188,10 @@
     'export-json': exportJson,
     'export-png': function () { return exportPng(false); },
     'export-png-all': function () { return exportPng(true); },
+    'export-svg': function () { return exportSvg(false); },
+    'export-svg-all': function () { return exportSvg(true); },
+    'export-pdf': function () { return exportPdf(false); },
+    'export-pdf-all': function () { return exportPdf(true); },
     print: printAll,
     share: shareProject,
     'share-json': shareProject,
