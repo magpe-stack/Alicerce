@@ -1776,6 +1776,13 @@
       ls('alicerce.snap', on ? '1' : '0');
       announce(on ? 'Grade magnética ativada.' : 'Grade magnética desativada.');
     },
+    guides: function (btn) {
+      var on = btn.getAttribute('aria-pressed') !== 'true';
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      engine.setGuides(on);
+      ls('alicerce.guides', on ? '1' : '0');
+      announce(on ? 'Guias inteligentes ativadas.' : 'Guias inteligentes desativadas.');
+    },
     'vp-mobile': function () { setViewport('mobile'); },
     'vp-desktop': function () { setViewport('desktop'); },
     open: openFile,
@@ -2046,6 +2053,9 @@
     });
     var snapOn = ls('alicerce.snap') !== '0', gridOn = ls('alicerce.grid') !== '0';
     engine.setSnap(snapOn);
+    var guidesOn = ls('alicerce.guides') !== '0';
+    engine.setGuides(guidesOn);
+    $('tb-guides').setAttribute('aria-pressed', guidesOn ? 'true' : 'false');
     engine.setGrid(gridOn);
     $('tb-snap').setAttribute('aria-pressed', snapOn ? 'true' : 'false');
     $('tb-grid').setAttribute('aria-pressed', gridOn ? 'true' : 'false');

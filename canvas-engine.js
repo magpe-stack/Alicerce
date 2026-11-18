@@ -402,6 +402,7 @@
       this.viewport = 'mobile';
       this.zoom = 1;
       this.snap = true;
+      this.guides = true;
       this.showGrid = true;
       this.selection = [];
       this.nodes = new Map();
@@ -445,6 +446,7 @@
     }
 
     setSnap(on) { this.snap = !!on; }
+    setGuides(on) { this.guides = !!on; if (!on) this._clearGuides(); }
     setGrid(on) {
       this.showGrid = !!on;
       this.stage.classList.toggle('grid-on', this.showGrid);
@@ -901,6 +903,61 @@
       return true;
     }
 
+    /* ---------- guias inteligentes ---------- */
+    /* Linhas-alvo: bordas e centros dos outros elementos visíveis e da própria tela. Cada alvo guarda
+       o trecho ocupado no outro eixo, para desenhar a guia só entre os elementos. */
+    _guideTargets(excl) {
+      var vp = this.vp, xs = [], ys = [];
+      [0, vp.w / 2, vp.w].forEach(function (v) { xs.push({ v: v, a: 0, b: vp.h, edge: true }); });
+      [0, vp.h / 2, vp.h].forEach(function (v) { ys.push({ v: v, a: 0, b: vp.w, edge: true }); });
+      this.screen.elements.forEach(function (e) {
+        if (e.hidden || excl.indexOf(e.id) > -1) return;
+        [e.x, e.x + e.w / 2, e.x + e.w].forEach(function (v) { xs.push({ v: v, a: e.y, b: e.y + e.h }); });
+        [e.y, e.y + e.h / 2, e.y + e.h].forEach(function (v) { ys.push({ v: v, a: e.x, b: e.x + e.w }); });
+      });
+      return { xs: xs, ys: ys };
+    }
+
+    /* Menor deslocamento que leva alguma das linhas `mine` até um alvo, dentro do limite `T`. */
+    _bestSnap(mine, targets, T) {
+      var best = null;
+      mine.forEach(function (m) {
+        targets.forEach(function (t) {
+          var d = t.v - m;
+          if (Math.abs(d) <= T && (best === null || Math.abs(d) < Math.abs(best))) best = d;
+        });
+      });
+      return best;
+    }
+
+    /* Desenha as guias das linhas que coincidem (após o encaixe) com algum alvo. */
+    _drawGuides(box, tg) {
+      this._clearGuides();
+      var self = this, made = {};
+      function line(vert, v, a, b) {
+        var key = (vert ? 'x' : 'y') + Math.round(v * 2);
+        var d = made[key];
+        if (d) { d.a = Math.min(d.a, a); d.b = Math.max(d.b, b); return; }
+        made[key] = { vert: vert, v: v, a: a, b: b };
+      }
+      var mx = [box.x, box.x + box.w / 2, box.x + box.w], my = [box.y, box.y + box.h / 2, box.y + box.h];
+      mx.forEach(function (m) { tg.xs.forEach(function (t) { if (Math.abs(t.v - m) < 0.5) line(true, t.v, Math.min(t.a, box.y), Math.max(t.b, box.y + box.h)); }); });
+      my.forEach(function (m) { tg.ys.forEach(function (t) { if (Math.abs(t.v - m) < 0.5) line(false, t.v, Math.min(t.a, box.x), Math.max(t.b, box.x + box.w)); }); });
+      Object.keys(made).forEach(function (k) {
+        var d = made[k], n = document.createElement('div');
+        n.className = 'snap-guide ' + (d.vert ? 'is-v' : 'is-h');
+        n.setAttribute('aria-hidden', 'true');
+        if (d.vert) { n.style.left = d.v + 'px'; n.style.top = d.a + 'px'; n.style.height = (d.b - d.a) + 'px'; }
+        else { n.style.top = d.v + 'px'; n.style.left = d.a + 'px'; n.style.width = (d.b - d.a) + 'px'; }
+        self.stage.appendChild(n);
+      });
+    }
+
+    _clearGuides() {
+      if (!this.stage) return;
+      Array.prototype.forEach.call(this.stage.querySelectorAll('.snap-guide'), function (n) { n.remove(); });
+    }
+
     /* ---------- alinhar e distribuir ---------- */
     /* Unidade = um elemento solto ou um grupo inteiro (caixa que envolve os membros). Unidade com
        algum membro travado não se move, mas continua valendo como referência. */
@@ -1266,8 +1323,19 @@
           minX = Math.min(minX, o.x); minY = Math.min(minY, o.y);
           maxR = Math.max(maxR, o.x + o.w); maxB = Math.max(maxB, o.y + o.h);
         });
+        var gtg = null;
+        if (this.guides) {
+          if (!d0.tg) d0.tg = this._guideTargets(this.selection);
+          gtg = d0.tg;
+          var T = 6 / z, bw = maxR - minX, bh = maxB - minY;
+          var sx = this._bestSnap([minX + ddx, minX + ddx + bw / 2, minX + ddx + bw], gtg.xs, T);
+          var sy = this._bestSnap([minY + ddy, minY + ddy + bh / 2, minY + ddy + bh], gtg.ys, T);
+          if (sx !== null) ddx += sx;
+          if (sy !== null) ddy += sy;
+        }
         ddx = Math.min(Math.max(ddx, -minX), Math.max(vp.w - maxR, -minX));
         ddy = Math.min(Math.max(ddy, -minY), Math.max(vp.h - maxB, -minY));
+        if (gtg) this._drawGuides({ x: minX + ddx, y: minY + ddy, w: maxR - minX, h: maxB - minY }, gtg);
         d0.orig.forEach(function (o) {
           var el = self.find(o.id);
           if (!el) return;
@@ -1285,10 +1353,12 @@
         if (!r.moved && Math.hypot(rdx, rdy) * z < 3) return;
         r.moved = true;
         var o = r.o, x = o.x, y = o.y, w = o.w, hh = o.h, dir = r.dir;
-        if (dir.indexOf('e') > -1) { w = this._snapV(o.x + o.w + rdx) - o.x; }
-        if (dir.indexOf('w') > -1) { x = this._snapV(o.x + rdx); w = o.x + o.w - x; }
-        if (dir.indexOf('s') > -1) { hh = this._snapV(o.y + o.h + rdy) - o.y; }
-        if (dir.indexOf('n') > -1) { y = this._snapV(o.y + rdy); hh = o.y + o.h - y; }
+        var rtg = null, RT = 6 / z, gsn = function (v, list) { var d = rtg ? self._bestSnap([v], list, RT) : null; return d === null ? v : v + d; };
+        if (this.guides) { if (!r.tg) r.tg = this._guideTargets([r.id]); rtg = r.tg; }
+        if (dir.indexOf('e') > -1) { w = gsn(this._snapV(o.x + o.w + rdx), rtg && rtg.xs) - o.x; }
+        if (dir.indexOf('w') > -1) { x = gsn(this._snapV(o.x + rdx), rtg && rtg.xs); w = o.x + o.w - x; }
+        if (dir.indexOf('s') > -1) { hh = gsn(this._snapV(o.y + o.h + rdy), rtg && rtg.ys) - o.y; }
+        if (dir.indexOf('n') > -1) { y = gsn(this._snapV(o.y + rdy), rtg && rtg.ys); hh = o.y + o.h - y; }
         if (w < MIN_SIZE) { if (dir.indexOf('w') > -1) x = o.x + o.w - MIN_SIZE; w = MIN_SIZE; }
         if (hh < MIN_SIZE) { if (dir.indexOf('n') > -1) y = o.y + o.h - MIN_SIZE; hh = MIN_SIZE; }
         if (x < 0) { w += x; x = 0; }
@@ -1297,6 +1367,7 @@
         if (y + hh > vp.h) hh = vp.h - y;
         el2.x = x; el2.y = y; el2.w = Math.max(MIN_SIZE, w); el2.h = Math.max(MIN_SIZE, hh);
         this._geom(el2);
+        if (rtg) this._drawGuides({ x: el2.x, y: el2.y, w: el2.w, h: el2.h }, rtg); else this._clearGuides();
         this.cb.onGeometry();
       }
     }
@@ -1304,6 +1375,7 @@
     _up(e, cancel) {
       if (!this.pointers.has(e.pointerId)) return;
       this.pointers.delete(e.pointerId);
+      this._clearGuides();
       try { this.ws.releasePointerCapture(e.pointerId); } catch (err) { /* ignorado */ }
 
       if (this.mode === 'drag') {
