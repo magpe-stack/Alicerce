@@ -1192,6 +1192,82 @@
     return p.then(function (v) { return v === 'ok' ? { name: nameInp.value.trim(), tpl: sel() } : null; });
   }
 
+  /* ================================================================== visão geral das telas */
+  function moveScreen(from, to) {
+    var p = state.project;
+    if (to < 0 || to >= p.screens.length || from === to) return false;
+    var sc = p.screens.splice(from, 1)[0];
+    p.screens.splice(to, 0, sc);
+    renderTabs();
+    commit('screen-move');
+    return true;
+  }
+
+  function renderOverview(focusId, focusBtn) {
+    var p = state.project, grid = $('ov-grid'), n = p.screens.length, vp = E.VIEWPORTS[p.viewport] || E.VIEWPORTS.mobile;
+    grid.textContent = '';
+    var dragFrom = -1;
+    p.screens.forEach(function (sc, i) {
+      var li = document.createElement('li');
+      li.className = 'ov-card' + (sc.id === p.activeScreenId ? ' is-current' : '');
+      li.draggable = true;
+      li.dataset.index = i;
+      var open = document.createElement('button');
+      open.type = 'button'; open.className = 'ov-open'; open.dataset.screen = sc.id;
+      open.setAttribute('aria-label', 'Abrir a tela ' + (i + 1) + ', ' + sc.name);
+      var cv = E.renderScreenCanvas(sc, p.viewport, Math.min(1, 380 / vp.w));
+      cv.setAttribute('aria-hidden', 'true');
+      open.appendChild(cv);
+      li.appendChild(open);
+      var meta = document.createElement('div'); meta.className = 'ov-meta';
+      var nm = document.createElement('span'); nm.className = 'ov-name'; nm.textContent = (i + 1) + '. ' + sc.name; nm.title = sc.name;
+      meta.appendChild(nm);
+      [['left', 'Mover para antes', i - 1, '#i-chevron-left', i === 0], ['right', 'Mover para depois', i + 1, '#i-chevron-right', i === n - 1]].forEach(function (d) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'icon-btn'; b.dataset.move = d[0]; b.dataset.index = i;
+        b.setAttribute('aria-label', d[1] + ': ' + sc.name); b.title = d[1]; b.disabled = d[4];
+        b.innerHTML = '<svg class="icon" aria-hidden="true"><use href="' + d[3] + '"/></svg>';
+        meta.appendChild(b);
+      });
+      li.appendChild(meta);
+      li.addEventListener('dragstart', function (ev) { dragFrom = i; li.classList.add('is-drag'); ev.dataTransfer.effectAllowed = 'move'; try { ev.dataTransfer.setData('text/plain', String(i)); } catch (e) {} });
+      li.addEventListener('dragend', function () { li.classList.remove('is-drag'); grid.querySelectorAll('.is-over').forEach(function (x) { x.classList.remove('is-over'); }); });
+      li.addEventListener('dragover', function (ev) { if (dragFrom < 0) return; ev.preventDefault(); li.classList.add('is-over'); });
+      li.addEventListener('dragleave', function () { li.classList.remove('is-over'); });
+      li.addEventListener('drop', function (ev) {
+        ev.preventDefault();
+        var from = dragFrom; dragFrom = -1;
+        if (from >= 0 && moveScreen(from, i)) { announce('Tela movida para a posição ' + (i + 1) + '.'); renderOverview(p.screens[i].id); }
+      });
+      grid.appendChild(li);
+    });
+    if (focusId) {
+      var t = focusBtn ? grid.querySelector('[data-screen="' + focusId + '"]').parentNode.querySelector('[data-move="' + focusBtn + '"]') : null;
+      if (t && t.disabled) t = grid.querySelector('[data-screen="' + focusId + '"]').parentNode.querySelector('[data-move]:not(:disabled)');
+      (t || grid.querySelector('[data-screen="' + focusId + '"]')).focus();
+    }
+  }
+
+  function bindOverview() {
+    $('ov-grid').addEventListener('click', function (ev) {
+      var mv = ev.target.closest('[data-move]');
+      if (mv) {
+        var i = Number(mv.dataset.index), to = mv.dataset.move === 'left' ? i - 1 : i + 1, id = state.project.screens[i].id;
+        if (moveScreen(i, to)) { announce('Tela movida para a posição ' + (to + 1) + '.'); renderOverview(id, mv.dataset.move); }
+        return;
+      }
+      var op = ev.target.closest('.ov-open');
+      if (op) { $('dlg-overview').close(); switchScreen(op.dataset.screen); }
+    });
+  }
+
+  function openOverview() {
+    renderOverview();
+    showDialog($('dlg-overview'));
+    var cur = $('ov-grid').querySelector('.is-current .ov-open');
+    if (cur) cur.focus();
+  }
+
   async function addScreen() {
     var p = state.project;
     var r = await newScreenDialog();
@@ -2139,6 +2215,7 @@
     'screen-add': addScreen,
     'screen-rename': renameScreen,
     'screen-dup': duplicateScreen,
+    'screens-overview': openOverview,
     'screen-delete': deleteScreen
   };
   var KEEP_DRAWER = { mode: 1, fullscreen: 1, menu: 1, 'drawer-close': 1 };
@@ -2376,6 +2453,7 @@
     ['pointerup', 'pointercancel'].forEach(function (t) { $('workspace').addEventListener(t, function () { setTimeout(schedulePositionSelBar, 0); }); });
     window.addEventListener('resize', schedulePositionSelBar);
     bindInspector();
+    bindOverview();
     bindClipboardEvents();
     bindUI();
     registerSW();

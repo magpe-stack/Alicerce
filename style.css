@@ -741,3 +741,16 @@ dialog a { color: var(--link); text-decoration: underline; }
 .wf-note .wf-body::after { content: ''; position: absolute; top: 0; right: 0; width: 16px; height: 16px; background: linear-gradient(45deg, rgba(31,36,48,.22) 50%, transparent 50%); }
 .wf-note .wf-text-content { white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 20px; }
 .is-flip-v.wf-note .wf-body { align-items: flex-end; }
+
+/* Visão geral das telas (v1.13) */
+dialog.dlg-overview { width: min(980px, calc(100vw - 24px)); }
+.ov-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; max-height: 60vh; overflow: auto; padding: 4px; }
+.ov-card { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 2px solid var(--border); border-radius: 10px; background: var(--bg); }
+.ov-card.is-current { border-width: 4px; padding: 6px; }
+.ov-card.is-drag { opacity: .45; }
+.ov-card.is-over { outline: 3px dashed var(--accent, currentColor); outline-offset: 2px; }
+.ov-open { display: block; width: 100%; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: #fff; cursor: pointer; overflow: hidden; }
+.ov-open canvas { display: block; width: 100%; height: auto; max-height: 260px; object-fit: contain; }
+.ov-meta { display: flex; align-items: center; gap: 4px; }
+.ov-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-meta .icon-btn { width: 32px; height: 32px; }
