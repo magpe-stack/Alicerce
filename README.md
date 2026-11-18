@@ -28,6 +28,7 @@ O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estrut
 ## Recursos
 
 - **Projetos e telas:** vários projetos, cada um com várias telas (Splash, Home, Menu, Perfil…) em abas. Criar, renomear, duplicar e excluir.
+- **Modelos de tela:** o botão *Nova tela* abre um diálogo com o nome e um ponto de partida: **Em branco**, **Login**, **Cadastro**, **Lista com busca**, **Painel**, **Configurações** e **Perfil**. Cada modelo se adapta à moldura do projeto (Mobile 360×800 ou Desktop 1280×800, com menu lateral no desktop), usa os componentes normais e entra como uma única ação de desfazer. O nome sugerido segue o modelo escolhido, até você digitar o seu.
 - **Disposição da interface:** abrir, salvar, exportar, imprimir e compartilhar ficam no cabeçalho, entre *Projetos* e o seletor de tema; a mãozinha e os controles de zoom ficam no centro do rodapé; a barra de ferramentas guarda histórico, prancheta e ferramentas de elemento (a lixeira fica à vista em telas de 1100 px ou mais).
 - **Barra flutuante:** ao selecionar elementos, uma barra aparece junto da seleção com cadeado, editar texto, cores, copiar, duplicar, frente, trás, espelhar e excluir. Ela some enquanto você arrasta e volta ao soltar. A barra fixa guarda só histórico, prancheta, camadas, selecionar tudo e colar.
 - **Alinhar e distribuir:** com 2 ou mais elementos selecionados, a barra flutuante e o inspetor mostram alinhar (esquerda, centro, direita, topo, meio, base); com 3 ou mais, distribuir na horizontal e na vertical. A referência é a caixa que envolve a seleção; elementos travados contam como referência, mas não se movem.
@@ -59,7 +60,7 @@ O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estrut
 1. Abra o app (a splash dura 3 segundos). O projeto **Meu primeiro projeto** já vem com uma tela vazia.
 2. Insira componentes pela **paleta** (parte inferior no celular, coluna à esquerda no desktop).
 3. Arraste para mover, use as alças para redimensionar, toque duas vezes para editar o texto.
-4. Use as abas para criar outras telas.
+4. Use as abas para criar outras telas (com **+**, escolha um modelo pronto ou comece em branco).
 5. Tudo é salvo automaticamente. Use **Exportar** para gerar arquivos.
 
 ### Cores dos elementos

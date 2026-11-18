@@ -510,6 +510,28 @@
   </form>
 </dialog>
 
+<dialog id="dlg-newscreen" class="dlg-wide" aria-labelledby="ns-title">
+  <form method="dialog" id="ns-form" class="dlg-form">
+    <div class="dlg-head">
+      <h2 id="ns-title">Nova tela</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Fechar"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="field">
+      <label for="ns-name">Nome da tela</label>
+      <input id="ns-name" type="text" required pattern=".*\S.*" maxlength="60" autocomplete="off">
+    </div>
+    <fieldset class="tpl-choice">
+      <legend>Ponto de partida</legend>
+      <div id="ns-templates" class="tpl-grid"></div>
+    </fieldset>
+    <p id="ns-hint" class="tpl-hint" aria-live="polite"></p>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-secondary" data-close>Cancelar</button>
+      <button type="submit" class="btn btn-primary" value="ok" id="ns-ok">Criar tela</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-projects" class="dlg-wide" aria-labelledby="projects-title">
   <div class="dlg-form">
     <div class="dlg-head">
@@ -571,7 +593,7 @@
     </div>
     <div class="about-hero">
       <img src="./icon-192.png" alt="" width="72" height="72">
-      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.10.0</span></p>
+      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.11.0</span></p>
     </div>
 
     <h3>Propósito</h3>

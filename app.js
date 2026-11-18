@@ -1030,16 +1030,181 @@
   }
 
   /* ================================================================== telas */
+  /* ================================================================== modelos de tela */
+  /* Cada modelo gera os elementos para a largura/altura da moldura (Mobile ou Desktop). */
+  function tEl(type, x, y, w, h, text, extra) {
+    var c = COMPONENTS[type];
+    return Object.assign({ type: type, x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h),
+      text: text == null ? (c.text || '') : text, checked: false, fill: '', stroke: '', color: '', flipH: false, flipV: false, r: null, locked: false, hidden: false, g: null }, extra || {});
+  }
+  function tLayout(W, H) {
+    var desk = W >= 900;
+    var cw = desk ? 420 : W - 48;
+    return { desk: desk, W: W, H: H, cw: cw, cx: Math.round((W - cw) / 2),
+      sbw: 240, ax: desk ? 272 : 16, aw: desk ? W - 272 - 32 : W - 32 };
+  }
+  function tFrame(L, title, items, nav) {
+    var out = [tEl('navbar', 0, 0, L.W, 56, title)];
+    if (L.desk) {
+      out.push(tEl('sidebar', 0, 56, L.sbw, L.H - 56, 'Alicerce\n' + items));
+    } else {
+      out.push(tEl('hamburger', 8, 6, 44, 44));
+      if (nav !== false) out.push(tEl('bottomnav', 0, L.H - 64, L.W, 64, 'Início\nBuscar\nPerfil'));
+    }
+    return out;
+  }
+
+  var TEMPLATES = [
+    { id: 'blank', name: 'Em branco', desc: 'Tela vazia, para montar do zero.', build: function () { return []; } },
+    { id: 'login', name: 'Login', desc: 'Logo, e-mail, senha, lembrar de mim, entrar e criar conta.', build: function (W, H) {
+      var L = tLayout(W, H), y = L.desk ? 90 : 72, x = L.cx, cw = L.cw;
+      return [
+        tEl('image', (W - 96) / 2, y, 96, 96),
+        tEl('text', x, y + 112, cw, 36, 'Entrar na sua conta'),
+        tEl('input', x, y + 160, cw, 44, 'E-mail'),
+        tEl('input', x, y + 216, cw, 44, 'Senha'),
+        tEl('checkbox', x, y + 272, cw, 32, 'Lembrar de mim', { checked: true }),
+        tEl('button', x, y + 320, cw, 48, 'Entrar'),
+        tEl('text', x, y + 384, cw, 28, 'Esqueci minha senha'),
+        tEl('divider', x, y + 424, cw, 12),
+        tEl('button', x, y + 452, cw, 48, 'Criar conta')
+      ];
+    } },
+    { id: 'signup', name: 'Cadastro', desc: 'Formulário longo com campos, país, termos e botão de envio.', build: function (W, H) {
+      var L = tLayout(W, H), x = L.cx, cw = L.cw, y = 88;
+      var out = [tEl('navbar', 0, 0, W, 56, 'Criar conta')];
+      if (!L.desk) out.push(tEl('hamburger', 8, 6, 44, 44));
+      return out.concat([
+        tEl('text', x, y, cw, 48, 'Preencha seus dados para começar.'),
+        tEl('input', x, y + 64, cw, 44, 'Nome completo'),
+        tEl('input', x, y + 120, cw, 44, 'E-mail'),
+        tEl('select', x, y + 176, cw, 44, 'País'),
+        tEl('input', x, y + 232, cw, 44, 'Senha'),
+        tEl('input', x, y + 288, cw, 44, 'Confirmar senha'),
+        tEl('checkbox', x, y + 348, cw, 32, 'Li e aceito os termos de uso'),
+        tEl('button', x, y + 396, cw, 48, 'Cadastrar'),
+        tEl('text', x, y + 460, cw, 28, 'Já tem conta? Entrar')
+      ]);
+    } },
+    { id: 'list', name: 'Lista com busca', desc: 'Cabeçalho, busca, abas, lista de itens e botão flutuante.', build: function (W, H) {
+      var L = tLayout(W, H), x = L.ax, w = L.aw;
+      return tFrame(L, 'Mensagens', 'Início\nMensagens\nContatos\nAjustes').concat([
+        tEl('input', x, 72, w, 44, 'Buscar mensagens'),
+        tEl('tabs', x, 128, w, 44, 'Todas\nNão lidas\nArquivadas'),
+        tEl('list', x, 184, w, L.desk ? 380 : 380, 'Ana Souza\nBruno Lima\nCarla Dias\nDiego Rocha\nElisa Prado\nFábio Nunes'),
+        tEl('fab', W - 72, H - (L.desk ? 72 : 64 + 72), 56, 56)
+      ]);
+    } },
+    { id: 'dashboard', name: 'Painel', desc: 'Indicadores, gráfico, meta com progresso e atividade recente.', build: function (W, H) {
+      var L = tLayout(W, H), x = L.ax, w = L.aw, out = tFrame(L, 'Painel', 'Início\nPainel\nRelatórios\nAjustes');
+      if (L.desk) {
+        var kw = Math.round((w - 32) / 3);
+        out.push(tEl('container', x, 80, kw, 96, 'Usuários: 1.248'), tEl('container', x + kw + 16, 80, kw, 96, 'Receita: R$ 8,4 mil'), tEl('container', x + 2 * (kw + 16), 80, kw, 96, 'Conversão: 3,2%'));
+        var gw = Math.round(w * 0.6);
+        out.push(tEl('image', x, 192, gw, 260), tEl('list', x + gw + 16, 192, w - gw - 16, 260, 'Novo cadastro\nPagamento aprovado\nRelatório gerado\nUsuário removido\nMeta atingida'));
+        out.push(tEl('text', x, 472, w, 32, 'Meta do mês'), tEl('progress', x, 512, w, 16));
+      } else {
+        var hw = Math.round((w - 16) / 2);
+        out.push(tEl('container', x, 72, hw, 96, 'Usuários: 1.248'), tEl('container', x + hw + 16, 72, hw, 96, 'Receita: R$ 8,4 mil'));
+        out.push(tEl('text', x, 184, w, 28, 'Meta do mês'), tEl('progress', x, 220, w, 16));
+        out.push(tEl('image', x, 252, w, 150), tEl('text', x, 414, w, 28, 'Atividade recente'), tEl('list', x, 446, w, 150, 'Novo cadastro\nPagamento aprovado\nRelatório gerado\nMeta atingida'));
+      }
+      return out;
+    } },
+    { id: 'settings', name: 'Configurações', desc: 'Opções com toggles, listas de conta, idioma e sair.', build: function (W, H) {
+      var L = tLayout(W, H), x = L.ax, w = L.desk ? Math.min(L.aw, 520) : L.aw;
+      return tFrame(L, 'Ajustes', 'Início\nPerfil\nAjustes\nAjuda').concat([
+        tEl('text', x, 72, w, 28, 'Notificações'),
+        tEl('toggle', x, 108, w, 32, 'Notificações push', { checked: true }),
+        tEl('toggle', x, 148, w, 32, 'E-mails semanais'),
+        tEl('toggle', x, 188, w, 32, 'Modo escuro'),
+        tEl('divider', x, 232, w, 12),
+        tEl('text', x, 252, w, 28, 'Conta'),
+        tEl('list', x, 288, w, 150, 'Perfil\nSegurança\nPrivacidade\nPagamentos'),
+        tEl('select', x, 454, w, 44, 'Idioma: Português'),
+        tEl('button', x, 514, w, 48, 'Sair da conta')
+      ]);
+    } },
+    { id: 'profile', name: 'Perfil', desc: 'Foto, nome, selo, abas e dados do usuário.', build: function (W, H) {
+      var L = tLayout(W, H), x = L.ax, w = L.desk ? Math.min(L.aw, 520) : L.aw, mid = L.desk ? x + (w - 96) / 2 : (W - 96) / 2;
+      return tFrame(L, 'Perfil', 'Início\nPerfil\nAjustes\nAjuda').concat([
+        tEl('image', mid, 80, 96, 96),
+        tEl('text', x, 188, w, 32, 'Maria Silva'),
+        tEl('badge', x, 224, 64, 24, 'Pro'),
+        tEl('tabs', x, 264, w, 44, 'Resumo\nAtividade\nAjustes'),
+        tEl('list', x, 320, w, 150, 'E-mail\nTelefone\nLocalização\nMembro desde'),
+        tEl('button', x, 486, w, 48, 'Editar perfil')
+      ]);
+    } }
+  ];
+
+  function templateThumb(tpl) {
+    var NS = 'http://www.w3.org/2000/svg', W = 360, H = 800;
+    var sv = document.createElementNS(NS, 'svg');
+    sv.setAttribute('class', 'tpl-thumb'); sv.setAttribute('viewBox', '0 0 ' + W + ' ' + H); sv.setAttribute('aria-hidden', 'true');
+    var fr = document.createElementNS(NS, 'rect');
+    fr.setAttribute('x', 2); fr.setAttribute('y', 2); fr.setAttribute('width', W - 4); fr.setAttribute('height', H - 4); fr.setAttribute('rx', 14);
+    fr.setAttribute('fill', 'none'); fr.setAttribute('stroke', 'currentColor'); fr.setAttribute('stroke-width', 8); fr.setAttribute('opacity', '.5');
+    sv.appendChild(fr);
+    tpl.build(W, H).forEach(function (e) {
+      var r = document.createElementNS(NS, 'rect');
+      r.setAttribute('x', e.x); r.setAttribute('y', e.y); r.setAttribute('width', e.w); r.setAttribute('height', e.h); r.setAttribute('rx', 8);
+      r.setAttribute('fill', 'currentColor'); r.setAttribute('fill-opacity', e.type === 'text' || e.type === 'divider' ? '.18' : '.3');
+      r.setAttribute('stroke', 'currentColor'); r.setAttribute('stroke-width', 5);
+      sv.appendChild(r);
+    });
+    return sv;
+  }
+
+  function uniqueScreenName(base) {
+    var names = state.project.screens.map(function (x) { return x.name; }), n = base, i = 2;
+    while (names.indexOf(n) > -1) n = base + ' ' + (i++);
+    return n.slice(0, 60);
+  }
+
+  function newScreenDialog() {
+    var box = $('ns-templates'), nameInp = $('ns-name'), hint = $('ns-hint'), dirty = false;
+    if (!box.children.length) {
+      TEMPLATES.forEach(function (t, i) {
+        var lab = document.createElement('label'); lab.className = 'tpl-opt';
+        var r = document.createElement('input'); r.type = 'radio'; r.name = 'ns-tpl'; r.value = t.id; r.checked = i === 0;
+        lab.appendChild(r);
+        lab.appendChild(templateThumb(t));
+        var st = document.createElement('strong'); st.textContent = t.name; lab.appendChild(st);
+        var sm = document.createElement('small'); sm.textContent = t.desc; lab.appendChild(sm);
+        box.appendChild(lab);
+      });
+    }
+    var radios = document.getElementsByName('ns-tpl');
+    radios[0].checked = true;
+    var sel = function () { for (var i = 0; i < radios.length; i++) if (radios[i].checked) return TEMPLATES[i]; return TEMPLATES[0]; };
+    var def = 'Tela ' + (state.project.screens.length + 1);
+    nameInp.value = def;
+    hint.textContent = TEMPLATES[0].desc;
+    nameInp.oninput = function () { dirty = true; };
+    box.onchange = function () {
+      var t = sel();
+      hint.textContent = t.desc;
+      if (!dirty) nameInp.value = t.id === 'blank' ? def : uniqueScreenName(t.name);
+    };
+    var p = showDialog($('dlg-newscreen'));
+    nameInp.focus(); nameInp.select();
+    return p.then(function (v) { return v === 'ok' ? { name: nameInp.value.trim(), tpl: sel() } : null; });
+  }
+
   async function addScreen() {
     var p = state.project;
-    var name = await promptDialog({ title: 'Nova tela', label: 'Nome da tela', value: 'Tela ' + (p.screens.length + 1), okText: 'Criar tela' });
-    if (!name) return;
-    var sc = { id: E.uid(), name: name.slice(0, 60), elements: [] };
+    var r = await newScreenDialog();
+    if (!r || !r.name) return;
+    var vp = E.VIEWPORTS[p.viewport] || E.VIEWPORTS.mobile;
+    var els = r.tpl.build(vp.w, vp.h).map(function (e) { e.id = E.uid(); return e; });
+    var sc = { id: E.uid(), name: r.name.slice(0, 60), elements: els };
     p.screens.push(sc);
     p.activeScreenId = sc.id;
     engine.setScreen(sc, p.viewport);
     renderTabs(sc.id);
     commit('screen-add');
+    if (els.length) announce('Tela criada a partir do modelo ' + r.tpl.name + ', com ' + els.length + ' elementos.');
   }
 
   async function renameScreen() {
