@@ -42,6 +42,8 @@
     scrollbar: { label: 'Barra de rolagem', icon: 'c-scrollbar', w: 16, h: 200, text: '', editable: false },
     card: { label: 'Card com imagem', icon: 'c-card', w: 280, h: 240, text: 'Título do card\nDescrição curta do conteúdo.', editable: true, multiline: true },
     modal: { label: 'Modal / Diálogo', icon: 'c-modal', w: 300, h: 200, text: 'Título do diálogo\nTexto de apoio que explica a decisão.', editable: true, multiline: true },
+    arrow: { label: 'Seta de fluxo', icon: 'c-arrow', w: 160, h: 24, text: '', editable: false },
+    note: { label: 'Nota / Anotação', icon: 'c-note', w: 200, h: 96, text: 'Anotação: descreva o comportamento ou o destino deste elemento.', editable: true, multiline: true },
     toast: { label: 'Toast / Snackbar', icon: 'c-toast', w: 300, h: 48, text: 'Alterações salvas\nDesfazer', editable: true, multiline: true },
     badge: { label: 'Badge / Tag', icon: 'c-badge', w: 64, h: 24, text: 'Ativo', editable: true },
     chip: { label: 'Chip removível', icon: 'c-chip', w: 104, h: 32, text: 'Filtro', editable: true },
@@ -53,19 +55,20 @@
     { label: 'Ações', types: ['button', 'iconbutton', 'fab'] },
     { label: 'Formulários', types: ['input', 'select', 'checkbox', 'radio', 'toggle', 'slider'] },
     { label: 'Navegação', types: ['navbar', 'hamburger', 'sidebar', 'bottomnav', 'tabs', 'breadcrumb', 'scrollbar'] },
-    { label: 'Conteúdo e feedback', types: ['container', 'card', 'image', 'text', 'list', 'divider', 'badge', 'chip', 'tooltip', 'progress', 'skeleton', 'modal', 'toast'] }
+    { label: 'Conteúdo e feedback', types: ['container', 'card', 'image', 'text', 'list', 'divider', 'badge', 'chip', 'tooltip', 'progress', 'skeleton', 'modal', 'toast'] },
+    { label: 'Fluxo e anotações', types: ['arrow', 'note'] }
   ];
   var COMPONENT_ORDER = GROUPS.reduce(function (a, g) { return a.concat(g.types); }, []);
 
   /* Cores do wireframe (iguais às variáveis CSS --wf-*) */
-  var INK = '#1F2430', MUTED = '#5B6270', FILL = '#EEF0F4', PAPER = '#FFFFFF', LIGHT = '#C9CED8', SOFT = '#F7F8FA';
+  var NOTE = '#FFF3B0', INK = '#1F2430', MUTED = '#5B6270', FILL = '#EEF0F4', PAPER = '#FFFFFF', LIGHT = '#C9CED8', SOFT = '#F7F8FA';
   var FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
   /* ------------------------------------------------------------------ cores */
   var HEX_RE = /^#[0-9a-fA-F]{6}$/;
   var DEFAULT_BG = { container: PAPER, button: FILL, input: PAPER, navbar: FILL, hamburger: PAPER, image: SOFT, text: PAPER, list: PAPER, toggle: PAPER, checkbox: PAPER, divider: PAPER,
     fab: FILL, iconbutton: PAPER, select: PAPER, radio: PAPER, slider: PAPER, tabs: PAPER, breadcrumb: PAPER, bottomnav: PAPER, sidebar: PAPER,
-    scrollbar: PAPER, card: PAPER, modal: PAPER, toast: FILL, badge: FILL, chip: FILL, tooltip: PAPER, progress: PAPER, skeleton: LIGHT };
+    scrollbar: PAPER, card: PAPER, modal: PAPER, toast: FILL, badge: FILL, chip: FILL, tooltip: PAPER, progress: PAPER, skeleton: LIGHT, arrow: PAPER, note: NOTE };
 
   function normHex(v) { return typeof v === 'string' && HEX_RE.test(v) ? v.toUpperCase() : ''; }
   function relLum(hex) {
@@ -101,7 +104,7 @@
 
   /* ------------------------------------------------------------------ cantos (raio) */
   var DEFAULT_RADIUS = { container: 8, button: 8, input: 6, navbar: 0, hamburger: 8, image: 0, text: 4, list: 8,
-    iconbutton: 8, select: 6, bottomnav: 0, sidebar: 0, card: 8, modal: 8, toast: 8, badge: 999, chip: 999, tooltip: 6 };
+    iconbutton: 8, select: 6, bottomnav: 0, sidebar: 0, card: 8, modal: 8, toast: 8, note: 2, badge: 999, chip: 999, tooltip: 6 };
   Object.keys(DEFAULT_RADIUS).forEach(function (k) { COMPONENTS[k].radius = true; });
 
   /* r = null (padrão do tipo) ou [sup.esq., sup.dir., inf.dir., inf.esq.] em inteiros 0..999 */
@@ -171,6 +174,27 @@
     return sv;
   }
 
+  /* Seta de fluxo: reta ao longo do lado maior; se o lado menor passar de 28 px, vira diagonal de canto a canto.
+     A espelhada na horizontal/vertical inverte o sentido (a ponta muda de lado). */
+  var ARROW_DIAG = 28;
+  function arrowPts(el) {
+    var w = el.w, hh = el.h, pad = 4, x1, y1, x2, y2;
+    if (Math.min(w, hh) > ARROW_DIAG) { x1 = pad; y1 = pad; x2 = w - pad; y2 = hh - pad; if (el.flipH) { var tx = x1; x1 = x2; x2 = tx; } if (el.flipV) { var ty = y1; y1 = y2; y2 = ty; } }
+    else if (w >= hh) { y1 = y2 = hh / 2; x1 = pad; x2 = w - pad; if (el.flipH) { x1 = w - pad; x2 = pad; } }
+    else { x1 = x2 = w / 2; y1 = pad; y2 = hh - pad; if (el.flipV) { y1 = hh - pad; y2 = pad; } }
+    var dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len;
+    var hl = Math.min(14, len * 0.6), hw = hl * 0.5;
+    var bx = x2 - ux * hl, by = y2 - uy * hl;
+    return { x1: x1, y1: y1, x2: x2, y2: y2, bx: bx, by: by, lx: bx - uy * hw, ly: by + ux * hw, rx: bx + uy * hw, ry: by - ux * hw };
+  }
+  function arrowSvg(el) {
+    var a = arrowPts(el), f = function (n) { return Math.round(n * 100) / 100; };
+    var sv = s('svg', { viewBox: '0 0 ' + el.w + ' ' + el.h, 'class': 'wf-arrow-svg', 'aria-hidden': 'true' });
+    sv.appendChild(s('line', { x1: f(a.x1), y1: f(a.y1), x2: f(a.bx), y2: f(a.by) }));
+    sv.appendChild(s('polygon', { points: [a.x2, a.y2, a.lx, a.ly, a.rx, a.ry].map(f).join(',') }));
+    return sv;
+  }
+
   function fillNode(node, el) {
     node.textContent = '';
     var body = h('div', 'wf-body');
@@ -201,6 +225,12 @@
       }
       case 'text':
         body.appendChild(h('div', 'wf-text-content', t));
+        break;
+      case 'note':
+        body.appendChild(h('div', 'wf-text-content', t));
+        break;
+      case 'arrow':
+        body.appendChild(arrowSvg(el));
         break;
       case 'list':
         String(t).split('\n').forEach(function (line) {
@@ -559,6 +589,7 @@
       var node = this.nodes.get(el.id);
       if (!node) return;
       applyGeom(node, el);
+      if (el.type === 'arrow') { var old = node.querySelector('.wf-arrow-svg'); if (old) old.replaceWith(arrowSvg(el)); }
       node.setAttribute('aria-label', describe(el));
       if (el.g) this._groupBoxes();
     }
@@ -1871,6 +1902,22 @@
         }
         ctx.fillStyle = txt; ctx.font = '14px ' + FONT; ctx.textAlign = LA;
         ctx.fillText(truncate(ctx, tl2[0], w - 32 - (act ? aw + 12 : 0)), X(16), hh / 2 + 0.5);
+        break;
+      }
+      case 'note': {
+        box(NOTE, R); outline(R);
+        ctx.fillStyle = 'rgba(31,36,48,.22)';
+        ctx.beginPath(); ctx.moveTo(w - 17, 1); ctx.lineTo(w - 17, 17); ctx.lineTo(w - 1, 17); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = txt; ctx.font = '14px ' + FONT; ctx.textBaseline = 'top'; ctx.textAlign = LA;
+        var nl = wrapLines(ctx, t, w - 24), ny = fv ? hh - 10 - nl.length * 20 : 10;
+        nl.forEach(function (ln, i) { ctx.fillText(ln, X(12), ny + i * 20 + 3); });
+        break;
+      }
+      case 'arrow': {
+        var ap = arrowPts(el);
+        ctx.strokeStyle = line; ctx.fillStyle = line; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(ap.x1, ap.y1); ctx.lineTo(ap.bx, ap.by); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ap.x2, ap.y2); ctx.lineTo(ap.lx, ap.ly); ctx.lineTo(ap.rx, ap.ry); ctx.closePath(); ctx.fill();
         break;
       }
       case 'badge':

@@ -885,7 +885,7 @@
     sec.hidden = false;
     var ok = { fill: false, stroke: true, color: false };
     els.forEach(function (el) {
-      if (el.type !== 'divider') ok.fill = true;
+      if (el.type !== 'divider' && el.type !== 'arrow') ok.fill = true;
       if (COMPONENTS[el.type].editable) ok.color = true;
     });
     ['fill', 'stroke', 'color'].forEach(function (k) { $('seg-' + k).hidden = !ok[k]; });

@@ -38,11 +38,12 @@ O **Alicerce** é um PWA de prototipação rápida (estilo rascunho) para estrut
 - **Prancheta híbrida:** grade magnética (liga/desliga), moldura **Mobile 360×800** ou **Desktop 1280×800**, zoom (botões, `Ctrl`+roda do mouse, pinça no toque) e rolagem.
 - **Espelhar e cantos:** Flip horizontal/vertical (`Shift+H`/`Shift+V`) e controle de cantos retos ou arredondados (predefinições, pílula e cantos independentes), com destaque para containers.
 - **Edição completa:** arrastar, redimensionar pelas 8 alças, duplicar, excluir, trazer para frente / enviar para trás, editar texto com duplo clique (ou duplo toque), seleção múltipla (`Shift`/`Ctrl`+clique).
-- **29 componentes de interface**, em 4 grupos. Clique para inserir ou arraste (mouse) para a prancheta:
+- **31 componentes de interface**, em 5 grupos. Clique para inserir ou arraste (mouse) para a prancheta:
   - **Ações:** Botão, Botão de ícone, Botão flutuante (FAB).
   - **Formulários:** Campo de input, Seleção (dropdown), Checkbox, Radio button, Toggle, Slider.
   - **Navegação:** Navbar, Menu hambúrguer, Menu lateral (drawer), Navegação inferior (tab bar), Abas (tabs), Breadcrumb, Barra de rolagem.
   - **Conteúdo e feedback:** Container, Card com imagem, Imagem placeholder, Bloco de texto, Lista, Divisor, Badge/Tag, Chip removível, Tooltip, Barra de progresso, Skeleton, Modal/Diálogo, Toast/Snackbar.
+  - **Fluxo e anotações:** Seta de fluxo e Nota adesiva. A seta é reta ao longo do lado maior da caixa (horizontal ou vertical) e vira diagonal de canto a canto quando o lado menor passa de 28 px; *Espelhar* inverte o sentido da ponta. Aceita cor de linha. A nota tem fundo amarelo (editável), texto com quebra de linha e canto dobrado; serve para explicar destinos e comportamentos. Ambas saem no PNG e na impressão.
 - **Painel de propriedades:** texto, posição (X/Y), tamanho e estado (ligado/marcado) do elemento selecionado.
 - **Ferramenta de cores:** troque o **fundo**, a **borda/linhas** e o **texto** de qualquer elemento (ou de vários de uma vez), com paleta dos 4 temas + neutras, seletor de cor livre e aviso de contraste WCAG. [Detalhes](#cores-dos-elementos)
 - **Desfazer / Refazer** com histórico de até 100 passos, **persistido** junto com o projeto.
