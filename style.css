@@ -762,3 +762,11 @@ body.rulers-on .workspace { margin: 18px 0 0 18px; }
 @media print { .ruler { display: none !important; } }
 @media (max-width: 520px) { body.rulers-on .workspace { margin: 0; } body.rulers-on .ruler { display: none; } }
 @media (max-width: 520px) { .footer-tag { display: none; } .app-footer { grid-template-columns: auto auto; justify-content: space-between; } }
+
+/* Telas estreitas: sem rolagem lateral (v1.16) */
+@media (max-width: 680px) {
+  .toolbar { flex-wrap: wrap; overflow-x: visible; row-gap: 2px; }
+  .toolbar .tb-group { padding-right: 4px; margin-right: 0; }
+}
+@media (max-width: 420px) { .hide-xs { display: none !important; } }
+@media (max-width: 380px) { .app-header .brand-name { display: none; } .hide-xxs { display: none !important; } }
