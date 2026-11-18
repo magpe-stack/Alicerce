@@ -65,6 +65,7 @@
     <symbol id="i-github" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-screens" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="7" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/><rect x="13" y="14" width="8" height="7" rx="1.5"/></symbol>
+    <symbol id="i-ruler" viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></symbol>
     <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
     <symbol id="i-backup" viewBox="0 0 24 24"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
     <symbol id="i-restore" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/><path d="M12 8v5l3 2"/></symbol>
@@ -271,6 +272,8 @@
       </div>
     </aside>
 
+    <canvas id="ruler-h" class="ruler ruler-h" aria-hidden="true"></canvas>
+    <canvas id="ruler-v" class="ruler ruler-v" aria-hidden="true"></canvas>
     <div id="workspace" class="workspace" tabindex="0" role="region" aria-label="Prancheta de wireframe. Selecione um elemento e use as setas para movê-lo, Shift para passos de 10, Alt com setas para redimensionar.">
       <div id="stage-wrap" class="stage-wrap">
         <div id="stage" class="stage grid-on" role="listbox" aria-multiselectable="true" aria-label="Elementos da tela"></div>
@@ -305,6 +308,10 @@
         <div class="field-row">
           <div class="field"><label for="insp-w">Largura</label><input id="insp-w" type="number" step="1" min="16" inputmode="numeric"></div>
           <div class="field"><label for="insp-h">Altura</label><input id="insp-h" type="number" step="1" min="16" inputmode="numeric"></div>
+        </div>
+        <div class="field field-check" id="insp-ratio-field">
+          <input id="insp-ratio" type="checkbox">
+          <label for="insp-ratio">Manter proporção (ou segure Shift ao arrastar um canto)</label>
         </div>
         <div class="field field-check" id="insp-state-field">
           <input id="insp-checked" type="checkbox">
@@ -412,6 +419,7 @@
       <button type="button" id="tb-zoom-label" class="icon-btn zoom-label" data-action="zoom-100" aria-label="Zoom atual 100%. Ativar para voltar a 100%" title="Voltar a 100%">100%</button>
       <button type="button" class="icon-btn" data-action="zoom-in" aria-label="Aumentar zoom" title="Aumentar zoom"><svg class="icon" aria-hidden="true"><use href="#i-zoom-in"/></svg></button>
       <button type="button" class="icon-btn" data-action="fit" aria-label="Ajustar à janela" title="Ajustar à janela"><svg class="icon" aria-hidden="true"><use href="#i-fit"/></svg></button>
+      <button type="button" id="tb-rulers" class="icon-btn hide-narrow" data-action="rulers" aria-pressed="false" aria-label="Réguas em pixels" title="Réguas em pixels"><svg class="icon" aria-hidden="true"><use href="#i-ruler"/></svg></button>
     </div>
     <nav class="footer-links" aria-label="Links do projeto">
       <a class="icon-btn footer-logo" href="https://magpe-stack.github.io/Alicerce/" target="_blank" rel="noopener noreferrer" aria-label="Alicerce — página oficial do app (abre em nova aba)" title="Alicerce">
@@ -618,7 +626,7 @@
     </div>
     <div class="about-hero">
       <img src="./icon-192.png" alt="" width="72" height="72">
-      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.14.0</span></p>
+      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.15.0</span></p>
     </div>
 
     <h3>Propósito</h3>

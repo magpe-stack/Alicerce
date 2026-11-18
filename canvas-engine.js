@@ -433,6 +433,7 @@
       this.zoom = 1;
       this.snap = true;
       this.guides = true;
+      this.keepRatio = false;
       this.showGrid = true;
       this.selection = [];
       this.nodes = new Map();
@@ -476,6 +477,7 @@
     }
 
     setSnap(on) { this.snap = !!on; }
+    setRatio(on) { this.keepRatio = !!on; }
     setGuides(on) { this.guides = !!on; if (!on) this._clearGuides(); }
     setGrid(on) {
       this.showGrid = !!on;
@@ -1435,6 +1437,16 @@
         if (dir.indexOf('w') > -1) { x = gsn(this._snapV(o.x + rdx), rtg && rtg.xs); w = o.x + o.w - x; }
         if (dir.indexOf('s') > -1) { hh = gsn(this._snapV(o.y + o.h + rdy), rtg && rtg.ys) - o.y; }
         if (dir.indexOf('n') > -1) { y = gsn(this._snapV(o.y + rdy), rtg && rtg.ys); hh = o.y + o.h - y; }
+        if (dir.length === 2 && (this.keepRatio !== !!e.shiftKey)) {
+          /* proporção travada (canto): escala única, limitada pelo tamanho mínimo e pela moldura */
+          var sc0 = Math.max(w / o.w, hh / o.h);
+          var availW = dir.indexOf('w') > -1 ? o.x + o.w : vp.w - o.x, availH = dir.indexOf('n') > -1 ? o.y + o.h : vp.h - o.y;
+          var smin = Math.max(MIN_SIZE / o.w, MIN_SIZE / o.h), smax = Math.max(smin, Math.min(availW / o.w, availH / o.h));
+          sc0 = Math.max(smin, Math.min(smax, sc0));
+          w = o.w * sc0; hh = o.h * sc0;
+          x = dir.indexOf('w') > -1 ? o.x + o.w - w : o.x;
+          y = dir.indexOf('n') > -1 ? o.y + o.h - hh : o.y;
+        }
         if (w < MIN_SIZE) { if (dir.indexOf('w') > -1) x = o.x + o.w - MIN_SIZE; w = MIN_SIZE; }
         if (hh < MIN_SIZE) { if (dir.indexOf('n') > -1) y = o.y + o.h - MIN_SIZE; hh = MIN_SIZE; }
         if (x < 0) { w += x; x = 0; }

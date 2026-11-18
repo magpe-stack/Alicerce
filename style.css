@@ -754,3 +754,11 @@ dialog.dlg-overview { width: min(980px, calc(100vw - 24px)); }
 .ov-meta { display: flex; align-items: center; gap: 4px; }
 .ov-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ov-meta .icon-btn { width: 32px; height: 32px; }
+
+/* Réguas (v1.15) */
+.ruler { display: none; position: fixed; z-index: 20; pointer-events: none; background: var(--surface); }
+body.rulers-on .ruler { display: block; }
+body.rulers-on .workspace { margin: 18px 0 0 18px; }
+@media print { .ruler { display: none !important; } }
+@media (max-width: 520px) { body.rulers-on .workspace { margin: 0; } body.rulers-on .ruler { display: none; } }
+@media (max-width: 520px) { .footer-tag { display: none; } .app-footer { grid-template-columns: auto auto; justify-content: space-between; } }
