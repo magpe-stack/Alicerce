@@ -774,3 +774,6 @@ body.rulers-on .workspace { margin: 18px 0 0 18px; }
 .wf-arrow .wf-body { overflow: visible; }
 .wf.is-bound .handle { display: none; }
 .wf.is-bound { cursor: pointer; }
+
+.wf-arrow .wf-body { position: relative; }
+.wf-arrow-label { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 240px; padding: 2px 7px; border: 1.5px solid var(--wf-line); border-radius: 4px; background: var(--wf-paper, #fff); font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }

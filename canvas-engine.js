@@ -42,7 +42,7 @@
     scrollbar: { label: 'Barra de rolagem', icon: 'c-scrollbar', w: 16, h: 200, text: '', editable: false },
     card: { label: 'Card com imagem', icon: 'c-card', w: 280, h: 240, text: 'Título do card\nDescrição curta do conteúdo.', editable: true, multiline: true },
     modal: { label: 'Modal / Diálogo', icon: 'c-modal', w: 300, h: 200, text: 'Título do diálogo\nTexto de apoio que explica a decisão.', editable: true, multiline: true },
-    arrow: { label: 'Seta de fluxo', icon: 'c-arrow', w: 160, h: 24, text: '', editable: false },
+    arrow: { label: 'Seta de fluxo', icon: 'c-arrow', w: 160, h: 24, text: '', editable: true },
     note: { label: 'Nota / Anotação', icon: 'c-note', w: 200, h: 96, text: 'Anotação: descreva o comportamento ou o destino deste elemento.', editable: true, multiline: true },
     toast: { label: 'Toast / Snackbar', icon: 'c-toast', w: 300, h: 48, text: 'Alterações salvas\nDesfazer', editable: true, multiline: true },
     badge: { label: 'Badge / Tag', icon: 'c-badge', w: 64, h: 24, text: 'Ativo', editable: true },
@@ -272,6 +272,7 @@
         break;
       case 'arrow':
         body.appendChild(arrowSvg(el));
+        if (t) body.appendChild(h('div', 'wf-arrow-label', String(t).split('\n')[0]));
         break;
       case 'list':
         String(t).split('\n').forEach(function (line) {
@@ -2030,6 +2031,13 @@
         ctx.strokeStyle = line; ctx.fillStyle = line; ctx.lineWidth = 2.5;
         ctx.beginPath(); ctx.moveTo(ap.x1, ap.y1); ctx.lineTo(ap.bx, ap.by); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(ap.x2, ap.y2); ctx.lineTo(ap.lx, ap.ly); ctx.lineTo(ap.rx, ap.ry); ctx.closePath(); ctx.fill();
+        if (t) {
+          ctx.font = '600 12px ' + FONT;
+          var lab = truncate(ctx, String(t).split('\n')[0], 240), lw = ctx.measureText(lab).width + 14, lx = (ap.x1 + ap.x2) / 2, ly = (ap.y1 + ap.y2) / 2;
+          ctx.fillStyle = PAPER; ctx.strokeStyle = line; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(lx - lw / 2 + 4, ly - 11); ctx.arcTo(lx + lw / 2, ly - 11, lx + lw / 2, ly + 11, 4); ctx.arcTo(lx + lw / 2, ly + 11, lx - lw / 2, ly + 11, 4); ctx.arcTo(lx - lw / 2, ly + 11, lx - lw / 2, ly - 11, 4); ctx.arcTo(lx - lw / 2, ly - 11, lx + lw / 2, ly - 11, 4); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = txt; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, lx, ly + 1);
+        }
         break;
       }
       case 'badge':

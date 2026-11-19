@@ -1132,6 +1132,32 @@
       }
       return out;
     } },
+    { id: 'onboarding', name: 'Boas-vindas', desc: 'Ilustração, título, texto, indicador de passo e botões Continuar e Pular.', build: function (W, H) {
+      var L = tLayout(W, H), x = L.cx, cw = L.cw, y = L.desk ? 70 : 90, iw = L.desk ? 360 : cw;
+      return [
+        tEl('image', (W - iw) / 2, y, iw, L.desk ? 280 : 260),
+        tEl('text', x, y + (L.desk ? 304 : 284), cw, 40, 'Bem-vindo ao app'),
+        tEl('text', x, y + (L.desk ? 348 : 328), cw, 72, 'Em poucos passos você configura tudo e começa a usar.'),
+        tEl('progress', x + cw / 2 - 60, y + (L.desk ? 436 : 436), 120, 12),
+        tEl('button', x, y + (L.desk ? 468 : 468), cw, 48, 'Continuar'),
+        tEl('text', x, y + (L.desk ? 532 : 532), cw, 28, 'Pular')
+      ];
+    } },
+    { id: 'checkout', name: 'Pagamento', desc: 'Resumo do pedido, dados do cartão, parcelas, total e botão Pagar.', build: function (W, H) {
+      var L = tLayout(W, H), x = L.cx, cw = L.cw, out = [tEl('navbar', 0, 0, W, 56, 'Pagamento')];
+      if (!L.desk) out.push(tEl('hamburger', 8, 6, 44, 44));
+      return out.concat([
+        tEl('list', x, 76, cw, 112, 'Camiseta básica — R$ 59,90\nBoné — R$ 39,90\nFrete — R$ 12,00'),
+        tEl('divider', x, 200, cw, 12),
+        tEl('input', x, 224, cw, 44, 'Número do cartão'),
+        tEl('input', x, 280, (cw - 12) / 2, 44, 'Validade'),
+        tEl('input', x + (cw + 12) / 2, 280, (cw - 12) / 2, 44, 'CVV'),
+        tEl('select', x, 336, cw, 44, 'Parcelas: 1x sem juros'),
+        tEl('text', x, 396, cw, 36, 'Total: R$ 111,80'),
+        tEl('checkbox', x, 444, cw, 32, 'Salvar cartão para as próximas compras'),
+        tEl('button', x, 492, cw, 48, 'Pagar agora')
+      ]);
+    } },
     { id: 'settings', name: 'Configurações', desc: 'Opções com toggles, listas de conta, idioma e sair.', build: function (W, H) {
       var L = tLayout(W, H), x = L.ax, w = L.desk ? Math.min(L.aw, 520) : L.aw;
       return tFrame(L, 'Ajustes', 'Início\nPerfil\nAjustes\nAjuda').concat([
