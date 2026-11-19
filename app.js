@@ -170,6 +170,7 @@
           hidden: !!e.hidden,
           r: COMPONENTS[e.type].radius ? E.normR(e.r) : null,
           g: (typeof e.g === 'string' && e.g) ? e.g.slice(0, 40) : null,
+          go: (typeof e.go === 'string' && e.go) ? e.go.slice(0, 100) : null,
           from: e.type === 'arrow' && typeof e.from === 'string' ? e.from.slice(0, 100) : null,
           to: e.type === 'arrow' && typeof e.to === 'string' ? e.to.slice(0, 100) : null,
           p: e.type === 'arrow' && Array.isArray(e.p) && e.p.length === 4 && e.p.every(function (v) { return typeof v === 'number' && isFinite(v); }) ? e.p.slice() : null
@@ -181,6 +182,8 @@
       els.forEach(function (e) { if (e.g && gcnt[e.g] < 2) e.g = null; });
       return { id: id, name: str(sc.name, 60, 'Tela ' + (i + 1)), elements: els };
     });
+    var sids = new Set(screens.map(function (x) { return x.id; }));
+    screens.forEach(function (sc) { sc.elements.forEach(function (e) { if (e.go && !sids.has(e.go)) e.go = null; }); });
     var active = str(raw.activeScreenId, 100, '');
     if (!screens.some(function (s) { return s.id === active; })) active = screens[0].id;
     return {
@@ -209,6 +212,7 @@
       map[old] = sc.id;
       sc.elements.forEach(function (el) { el.id = E.uid(); });
     });
+    c.screens.forEach(function (sc) { sc.elements.forEach(function (el) { if (el.go) el.go = map[el.go] || null; }); });
     c.activeScreenId = map[c.activeScreenId] || c.screens[0].id;
     return c;
   }
@@ -421,6 +425,7 @@
     p.activeScreenId = id;
     engine.setScreen(activeScreen(), p.viewport);
     renderTabs();
+    if (state.preview) updatePreviewBar();
     scheduleSave();
     announce('Tela ' + activeScreen().name + '.');
   }
@@ -538,6 +543,65 @@
     setTimeout(revealSelection, 60);
   }
 
+  function fillGoSelect(el) {
+    var sel = $('insp-go'), p = state.project, cur = activeScreen().id;
+    sel.textContent = '';
+    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Nenhuma (não faz nada)'; sel.appendChild(o0);
+    p.screens.forEach(function (sc) {
+      if (sc.id === cur) return;
+      var o = document.createElement('option'); o.value = sc.id; o.textContent = sc.name; sel.appendChild(o);
+    });
+    sel.value = el.go && p.screens.some(function (x) { return x.id === el.go; }) ? el.go : '';
+  }
+
+  /* ---- modo de teste do protótipo ---- */
+  state.preview = null;
+  function setPreview(on) {
+    if (on === !!state.preview) return;
+    document.body.classList.toggle('preview-on', on);
+    $('preview-bar').hidden = !on;
+    var tb = document.querySelector('[data-action="preview"]');
+    if (tb) tb.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (on) {
+      openInspector(false);
+      state.preview = { start: state.project.activeScreenId, stack: [] };
+      engine.setPreview(true);
+      updatePreviewBar();
+      announce('Modo de teste ligado. Toque nos elementos com seta para navegar. Esc para sair.');
+    } else {
+      var start = state.preview.start;
+      state.preview = null;
+      engine.setPreview(false);
+      if (state.project.screens.some(function (x) { return x.id === start; })) switchScreen(start);
+    }
+    schedulePositionSelBar();
+  }
+  function previewGo(id) {
+    if (!state.preview || !state.project.screens.some(function (x) { return x.id === id; })) return;
+    state.preview.stack.push(state.project.activeScreenId);
+    switchScreen(id);
+    updatePreviewBar();
+  }
+  function previewBack() {
+    if (!state.preview || !state.preview.stack.length) return;
+    switchScreen(state.preview.stack.pop());
+    updatePreviewBar();
+  }
+  function updatePreviewBar() {
+    $('preview-back').disabled = !state.preview || !state.preview.stack.length;
+    $('preview-name').textContent = 'Testando: ' + activeScreen().name;
+  }
+  /* durante o teste, só a prancheta, as abas e a barra de teste respondem */
+  ['pointerdown', 'click', 'keydown', 'dragstart', 'contextmenu'].forEach(function (t) {
+    document.addEventListener(t, function (e) {
+      if (!state.preview) return;
+      var tg = e.target && e.target.closest ? e.target : null;
+      if (e.type === 'keydown' && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setPreview(false); return; }
+      if (tg && tg.closest('#workspace, #preview-bar, .tabs, dialog, [data-action="preview"]')) { if (e.type === 'keydown' && !tg.closest('.tabs, #preview-bar')) e.stopPropagation(); return; }
+      e.stopPropagation(); e.preventDefault();
+    }, true);
+  });
+
   function syncInspector(force) {
     renderLayers();
     var els = engine.selectedElements();
@@ -561,6 +625,7 @@
     if (c.hasState) $('insp-checked-label').textContent = c.stateLabel;
     var set = function (id, val) { var f = $(id); if (force || document.activeElement !== f) f.value = val; };
     set('insp-text', el.text || '');
+    fillGoSelect(el);
     set('insp-x', Math.round(el.x));
     set('insp-y', Math.round(el.y));
     set('insp-w', Math.round(el.w));
@@ -1028,6 +1093,10 @@
       inp.addEventListener('change', function () { syncInspector(true); });
     });
     $('insp-locked').addEventListener('change', function (ev) { engine.toggleLockSelected(ev.target.checked); });
+    $('insp-go').addEventListener('change', function (ev) {
+      var el = single(); if (!el) return;
+      engine.updateElement(el.id, { go: ev.target.value || null }, null);
+    });
     $('insp-checked').addEventListener('change', function (ev) {
       var el = single(); if (!el) return;
       engine.updateElement(el.id, { checked: ev.target.checked }, null);
@@ -1431,6 +1500,7 @@
     if (c !== 'ok') return;
     var i = p.screens.indexOf(sc);
     p.screens.splice(i, 1);
+    p.screens.forEach(function (x) { x.elements.forEach(function (e) { if (e.go === sc.id) e.go = null; }); });
     var next = p.screens[Math.min(i, p.screens.length - 1)];
     p.activeScreenId = next.id;
     engine.setScreen(next, p.viewport);
@@ -2357,6 +2427,9 @@
     'screen-rename': renameScreen,
     'screen-dup': duplicateScreen,
     'screens-overview': openOverview,
+    'preview': function () { setPreview(!state.preview); },
+    'preview-exit': function () { setPreview(false); },
+    'preview-back': previewBack,
     'rulers': function () { setRulers(!document.body.classList.contains('rulers-on'), true); },
     'screen-delete': deleteScreen
   };
@@ -2560,6 +2633,7 @@
       callbacks: {
         onChange: function (tag) { commit(tag); },
         onSelection: updateSelectionUI,
+        onNavigate: function (id) { previewGo(id); },
         onGeometry: function () { syncInspector(false); schedulePositionSelBar(); },
         onZoom: onZoom,
         onHand: function (on) {

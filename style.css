@@ -777,3 +777,15 @@ body.rulers-on .workspace { margin: 18px 0 0 18px; }
 
 .wf-arrow .wf-body { position: relative; }
 .wf-arrow-label { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 240px; padding: 2px 7px; border: 1.5px solid var(--wf-line); border-radius: 4px; background: var(--wf-paper, #fff); font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+
+/* ---- modo de teste do protótipo (v1.20) ---- */
+.wf-go{position:absolute;right:-5px;top:-5px;width:14px;height:14px;border-radius:50%;background:var(--art-sel,#2563eb) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12h13M13 6l6 6-6 6' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E") center/10px no-repeat;z-index:3;pointer-events:none}
+.workspace.is-preview .handle,.workspace.is-preview .sel-bar{display:none!important}
+.workspace.is-preview .wf{cursor:default}
+.workspace.is-preview .wf.has-go{cursor:pointer;animation:goPulse 1.6s ease-in-out infinite}
+@keyframes goPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.0)}50%{box-shadow:0 0 0 4px rgba(37,99,235,.35)}}
+@media (prefers-reduced-motion:reduce){.workspace.is-preview .wf.has-go{animation:none;outline:2px dashed var(--art-sel,#2563eb)}}
+.preview-bar{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 24px);padding:8px 10px;background:var(--surface,#fff);color:var(--text,#111);border:2px solid var(--art-sel,#2563eb);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.preview-bar[hidden]{display:none}
+.preview-name{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.preview-on [data-action="preview"]{outline:2px solid var(--art-sel,#2563eb)}

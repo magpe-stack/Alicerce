@@ -126,6 +126,10 @@ A ordem e os estados de ocultar/travar são salvos no projeto e entram no desfaz
 
 Como no CSS, raios que somados passam do tamanho do lado são reduzidos proporcionalmente. Tudo vale também para PNG, impressão, `.json`, copiar/colar e desfazer/refazer.
 
+### Testar o protótipo
+
+Cada elemento pode apontar para outra tela: selecione-o e, no painel de propriedades, escolha em **Ao tocar, ir para** a tela de destino (uma pequena seta azul no canto do elemento indica que ele tem destino; ela não aparece nas exportações). O botão **▶ Testar protótipo**, ao lado das abas de telas, liga o modo de teste: a prancheta passa a ser só de visualização, os elementos com destino pulsam e tocar neles leva à tela escolhida. A barra *Testando* mostra a tela atual, **Voltar** retorna pelo caminho percorrido e **Sair do teste** (ou `Esc`) volta à tela onde o teste começou. No teste nada é movido, editado nem adicionado. Ao excluir uma tela, os destinos que apontavam para ela são limpos; duplicar a tela ou o projeto preserva os destinos.
+
 ### Menu (☰)
 
 Abre a gaveta lateral com: **Novo Projeto**, **Meus Projetos**, abrir/salvar arquivo, exportar/importar/compartilhar, imprimir, **Backup Geral**, **Restaurar Backup**, seletor dos 4 temas, modo claro/escuro, tela cheia, **Instalar**, **Sobre**, GitHub e Ajuda.

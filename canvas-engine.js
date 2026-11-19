@@ -426,6 +426,13 @@
       }
     }
     node.appendChild(body);
+    goBadge(node, el);
+  }
+
+  function goBadge(node, el) {
+    var b = node.querySelector(':scope > .wf-go');
+    if (el.go && !b) { b = h('span', 'wf-go'); b.setAttribute('aria-hidden', 'true'); node.appendChild(b); }
+    else if (!el.go && b) b.remove();
   }
 
   function applyGeom(node, el) {
@@ -435,6 +442,8 @@
     node.style.height = el.h + 'px';
     if (el.type === 'scrollbar') node.classList.toggle('is-horiz', el.w > el.h);
     if (el.type === 'arrow') node.classList.toggle('is-bound', isBound(el));
+    node.classList.toggle('has-go', !!el.go);
+    goBadge(node, el);
     if (el.r && COMPONENTS[el.type] && COMPONENTS[el.type].radius) {
       node.style.setProperty('--c-radius', fitRadii(el.r, el.w, el.h).map(function (v) { return v + 'px'; }).join(' '));
     } else node.style.removeProperty('--c-radius');
@@ -470,7 +479,7 @@
       this.ws = opts.workspace;
       this.wrap = opts.wrap;
       this.stage = opts.stage;
-      this.cb = Object.assign({ onChange: noop, onSelection: noop, onGeometry: noop, onZoom: noop, onAnnounce: noop, onLocked: noop }, opts.callbacks || {});
+      this.cb = Object.assign({ onChange: noop, onSelection: noop, onGeometry: noop, onZoom: noop, onAnnounce: noop, onLocked: noop, onNavigate: noop }, opts.callbacks || {});
       this.screen = null;
       this.viewport = 'mobile';
       this.zoom = 1;
@@ -812,7 +821,8 @@
           fill: normHex(e.fill), stroke: normHex(e.stroke), color: normHex(e.color),
           flipH: !!e.flipH, flipV: !!e.flipV, r: normR(e.r), locked: false, hidden: false,
           w: e.w, h: e.h, x: e.x + off, y: e.y + off,
-          g: (e.g && cnt[e.g] > 1) ? (gmap[e.g] || (gmap[e.g] = uid())) : null
+          g: (e.g && cnt[e.g] > 1) ? (gmap[e.g] || (gmap[e.g] = uid())) : null,
+          go: e.go || null
         };
         c.x = clamp(c.x, 0, Math.max(0, vp.w - c.w));
         c.y = clamp(c.y, 0, Math.max(0, vp.h - c.h));
@@ -964,6 +974,7 @@
         if (k in patch) { el[k] = normHex(patch[k]); styleChanged = true; }
       });
       if ('r' in patch && c.radius) el.r = normR(patch.r);
+      if ('go' in patch) el.go = patch.go ? String(patch.go).slice(0, 100) : null;
       ['flipH', 'flipV'].forEach(function (k) {
         if (k in patch) { el[k] = !!patch[k]; styleChanged = true; }
       });
@@ -1262,7 +1273,7 @@
 
     /* ---------- teclado ---------- */
     handleKey(e) {
-      if (this.editing) return false;
+      if (this.editing || this.preview) return false;
       var key = e.key, mod = e.ctrlKey || e.metaKey, lk = key.toLowerCase();
       if (mod && lk === 'a') { this.selectAll(); return true; }
       if (!e.shiftKey && !mod && !e.altKey && lk === 'h') { this.toggleHand(); return true; }
@@ -1333,7 +1344,7 @@
         if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) e.preventDefault();
       });
       this.stage.addEventListener('focusin', function (e) {
-        if (self._pointerActive || self.editing) return;
+        if (self._pointerActive || self.editing || self.preview) return;
         var n = e.target.closest && e.target.closest('.wf');
         if (!n) return;
         var id = n.dataset.id;
@@ -1342,6 +1353,18 @@
     }
 
     _down(e) {
+      if (this.preview) {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        var self = this, hit = null;
+        (document.elementsFromPoint ? document.elementsFromPoint(e.clientX, e.clientY) : [e.target]).some(function (n) {
+          var w = n.closest && n.closest('.wf');
+          var el = w && self.find(w.dataset.id);
+          if (el && el.go) { hit = el; return true; }
+          return false;
+        });
+        if (hit) { e.preventDefault(); this.cb.onNavigate(hit.go, hit); }
+        return;
+      }
       if (e.target.closest && e.target.closest('.wf-editor')) return;
       if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1) return;
       this.endEdit(true);
@@ -1366,6 +1389,18 @@
       this._capturing = true;
       try { this.ws.setPointerCapture(e.pointerId); } catch (err) { /* ignorado */ }
       this._capturing = false;
+    }
+
+    /* Modo de teste: toques nos elementos com destino navegam; nada é editado. */
+    setPreview(on) {
+      on = !!on;
+      if (on === !!this.preview) return;
+      this.endEdit(true);
+      if (on) this.select([], true);
+      this.preview = on;
+      this.ws.classList.toggle('is-preview', on);
+      this._decorate();
+      this.cb.onSelection(this.selection.slice());
     }
 
     /* Ferramenta mãozinha: o arrasto com o botão principal (ou toque) move o palco em qualquer ponto. */
