@@ -2155,33 +2155,148 @@
     return c.toString(project.name + ' — Alicerce');
   }
 
-  /* ------------------------------------------------------------------ Exportação PDF (uma tela por página, imagem JPEG) */
+  /* ------------------------------------------------------------------ Exportação PDF vetorial */
+  /* Contexto que grava as chamadas do canvas 2D como operadores de conteúdo PDF (coordenadas em px, origem no topo). */
+  var WIN1252 = { 8364: 128, 8218: 130, 402: 131, 8222: 132, 8230: 133, 8224: 134, 8225: 135, 710: 136, 8240: 137, 352: 138, 8249: 139, 338: 140, 381: 142, 8216: 145, 8217: 146, 8220: 147, 8221: 148, 8226: 149, 8211: 150, 8212: 151, 732: 152, 8482: 153, 353: 154, 8250: 155, 339: 156, 382: 158, 376: 159 };
+  function pdfStr(t) {
+    var o = '';
+    for (var i = 0; i < t.length; i++) {
+      var c = t.charCodeAt(i), b = c < 256 ? c : (WIN1252[c] || 63);
+      if (c === 160) b = 32;
+      if (b === 40 || b === 41 || b === 92) o += '\\' + String.fromCharCode(b);
+      else if (b < 32 || b > 126) o += '\\' + ('00' + b.toString(8)).slice(-3);
+      else o += String.fromCharCode(b);
+    }
+    return '(' + o + ')';
+  }
+  function parseColor(c) {
+    var m, r = 0, g = 0, b = 0, a = 1;
+    c = String(c).trim();
+    if ((m = /^#([0-9a-f]{3})$/i.exec(c))) { r = parseInt(m[1][0] + m[1][0], 16); g = parseInt(m[1][1] + m[1][1], 16); b = parseInt(m[1][2] + m[1][2], 16); }
+    else if ((m = /^#([0-9a-f]{6})$/i.exec(c))) { r = parseInt(m[1].slice(0, 2), 16); g = parseInt(m[1].slice(2, 4), 16); b = parseInt(m[1].slice(4, 6), 16); }
+    else if ((m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/i.exec(c))) { r = +m[1]; g = +m[2]; b = +m[3]; if (m[4] != null) a = /%$/.test(m[4]) ? parseFloat(m[4]) / 100 : +m[4]; }
+    else if (c === 'transparent') a = 0;
+    var f = function (v) { return (Math.round(v / 255 * 1000) / 1000); };
+    return { rgb: f(r) + ' ' + f(g) + ' ' + f(b), a: a };
+  }
+
+  function PdfCtx(W, H, scale, alphas) {
+    this.W = W; this.H = H; this.out = []; this.alphas = alphas; this.stack = []; this.d = ''; this.cx = 0; this.cy = 0; this.depth = 0;
+    this._m = document.createElement('canvas').getContext('2d'); this._h = document.createElement('canvas').getContext('2d');
+    this.fillStyle = '#000'; this.strokeStyle = '#000'; this.lineWidth = 1; this.lineCap = 'butt'; this.lineJoin = 'miter';
+    this.globalAlpha = 1; this.textAlign = 'left'; this.textBaseline = 'alphabetic'; this._font = '10px sans-serif';
+    this.out.push(scale + ' 0 0 -' + scale + ' 0 ' + nf(H * scale) + ' cm');
+  }
+  function pf(n) { return String(Math.round(n * 100) / 100); }
+  PdfCtx.prototype = {
+    get font() { return this._font; },
+    set font(v) { this._font = v; this._m.font = v; },
+    measureText: function (t) { return this._m.measureText(t); },
+    _snap: function () { return { fillStyle: this.fillStyle, strokeStyle: this.strokeStyle, lineWidth: this.lineWidth, lineCap: this.lineCap, lineJoin: this.lineJoin, globalAlpha: this.globalAlpha, font: this._font, textAlign: this.textAlign, textBaseline: this.textBaseline }; },
+    save: function () { this.stack.push(this._snap()); this.out.push('q'); this.depth++; },
+    restore: function () {
+      if (!this.depth) return;
+      this.out.push('Q'); this.depth--;
+      var s = this.stack.pop();
+      if (s) { this.fillStyle = s.fillStyle; this.strokeStyle = s.strokeStyle; this.lineWidth = s.lineWidth; this.lineCap = s.lineCap; this.lineJoin = s.lineJoin; this.globalAlpha = s.globalAlpha; this.font = s.font; this.textAlign = s.textAlign; this.textBaseline = s.textBaseline; }
+    },
+    translate: function (x, y) { this.out.push('1 0 0 1 ' + pf(x) + ' ' + pf(y) + ' cm'); },
+    scale: function (a, b) { this.out.push(pf(a) + ' 0 0 ' + pf(b == null ? a : b) + ' 0 0 cm'); },
+    beginPath: function () { this.d = ''; },
+    moveTo: function (x, y) { this.d += pf(x) + ' ' + pf(y) + ' m '; this.cx = x; this.cy = y; },
+    lineTo: function (x, y) { this.d += pf(x) + ' ' + pf(y) + (this.d ? ' l ' : ' m '); this.cx = x; this.cy = y; },
+    closePath: function () { if (this.d) this.d += 'h '; },
+    rect: function (x, y, w, h) { this.d += pf(x) + ' ' + pf(y) + ' ' + pf(w) + ' ' + pf(h) + ' re '; this.cx = x; this.cy = y; },
+    _arcSeg: function (cx, cy, r, a0, delta) {
+      var steps = Math.max(1, Math.ceil(Math.abs(delta) / (Math.PI / 2))), da = delta / steps, k = 4 / 3 * Math.tan(da / 4), i;
+      for (i = 0; i < steps; i++) {
+        var s0 = a0 + da * i, s1 = s0 + da, x0 = cx + r * Math.cos(s0), y0 = cy + r * Math.sin(s0), x3 = cx + r * Math.cos(s1), y3 = cy + r * Math.sin(s1);
+        this.d += pf(x0 - k * r * Math.sin(s0)) + ' ' + pf(y0 + k * r * Math.cos(s0)) + ' ' + pf(x3 + k * r * Math.sin(s1)) + ' ' + pf(y3 - k * r * Math.cos(s1)) + ' ' + pf(x3) + ' ' + pf(y3) + ' c ';
+        this.cx = x3; this.cy = y3;
+      }
+    },
+    arc: function (x, y, r, a0, a1, ccw) {
+      var TAU = Math.PI * 2, delta;
+      if (!ccw) { delta = a1 - a0; if (delta >= TAU) delta = TAU; else { delta %= TAU; if (delta < 0) delta += TAU; } }
+      else { delta = a0 - a1; if (delta >= TAU) delta = TAU; else { delta %= TAU; if (delta < 0) delta += TAU; } delta = -delta; }
+      this.lineTo(x + r * Math.cos(a0), y + r * Math.sin(a0));
+      this._arcSeg(x, y, r, a0, delta);
+    },
+    arcTo: function (x1, y1, x2, y2, r) {
+      var x0 = this.cx, y0 = this.cy, ax = x0 - x1, ay = y0 - y1, bx = x2 - x1, by = y2 - y1, la = Math.hypot(ax, ay), lb = Math.hypot(bx, by);
+      if (!this.d || !r || !la || !lb) { this.lineTo(x1, y1); return; }
+      ax /= la; ay /= la; bx /= lb; by /= lb;
+      var cross = (-ax) * by - (-ay) * bx;
+      if (Math.abs(cross) < 1e-6) { this.lineTo(x1, y1); return; }
+      var ang = Math.acos(Math.max(-1, Math.min(1, ax * bx + ay * by))), dd = r / Math.tan(ang / 2);
+      var t0x = x1 + ax * dd, t0y = y1 + ay * dd, t1x = x1 + bx * dd, t1y = y1 + by * dd;
+      var mx = ax + bx, my = ay + by, ml = Math.hypot(mx, my) || 1, cd = r / Math.sin(ang / 2);
+      var ccx = x1 + mx / ml * cd, ccy = y1 + my / ml * cd;
+      var s0 = Math.atan2(t0y - ccy, t0x - ccx), s1 = Math.atan2(t1y - ccy, t1x - ccx), delta = s1 - s0;
+      while (delta > Math.PI) delta -= Math.PI * 2;
+      while (delta <= -Math.PI) delta += Math.PI * 2;
+      this.lineTo(t0x, t0y);
+      this._arcSeg(ccx, ccy, r, s0, delta);
+    },
+    _paint: function (kind, color, geom) {
+      var c = parseColor(color), a = c.a * this.globalAlpha;
+      if (a <= 0) return;
+      var op = kind === 'fill' ? 'rg' : 'RG', pre = '', post = '';
+      if (a < 0.999) { var key = String(Math.round(a * 100)); this.alphas[key] = a; pre = 'q /GS' + key + ' gs '; post = ' Q'; }
+      var line = '';
+      if (kind === 'stroke') line = pf(this.lineWidth) + ' w ' + ({ butt: 0, round: 1, square: 2 }[this.lineCap] || 0) + ' J ' + ({ miter: 0, round: 1, bevel: 2 }[this.lineJoin] || 0) + ' j ';
+      this.out.push(pre + c.rgb + ' ' + op + ' ' + line + geom + post);
+    },
+    fill: function () { if (this.d) this._paint('fill', this.fillStyle, this.d + 'f'); },
+    stroke: function () { if (this.d) this._paint('stroke', this.strokeStyle, this.d + 'S'); },
+    fillRect: function (x, y, w, h) { this._paint('fill', this.fillStyle, pf(x) + ' ' + pf(y) + ' ' + pf(w) + ' ' + pf(h) + ' re f'); },
+    strokeRect: function (x, y, w, h) { this._paint('stroke', this.strokeStyle, pf(x) + ' ' + pf(y) + ' ' + pf(w) + ' ' + pf(h) + ' re S'); },
+    clip: function () { this.out.push(this.d + 'W n'); },
+    fillText: function (t, x, y) {
+      if (t == null || t === '') return;
+      t = String(t);
+      var m = /^\s*(italic\s+)?(?:(bold|normal|[1-9]00)\s+)?(\d+(?:\.\d+)?)px\s+/.exec(this._font) || [], size = +m[3] || 10;
+      var bold = m[2] === 'bold' || +m[2] >= 600, it = !!m[1], face = bold ? (it ? 'F4' : 'F2') : (it ? 'F3' : 'F1');
+      var wc = this._m.measureText(t).width;
+      this._h.font = (it ? 'italic ' : '') + (bold ? 'bold ' : '') + size + 'px Helvetica, Arial, sans-serif';
+      var wh = this._h.measureText(t).width || wc, tz = wh ? Math.max(50, Math.min(150, wc / wh * 100)) : 100, w = wh ? wh * tz / 100 : wc;
+      var dx = { right: -w, end: -w, center: -w / 2 }[this.textAlign] || 0;
+      var dy = { middle: 0.29 * size, top: 0.718 * size, hanging: 0.718 * size, bottom: -0.207 * size }[this.textBaseline] || 0;
+      var col = parseColor(this.fillStyle), a = col.a * this.globalAlpha;
+      if (a <= 0) return;
+      var pre = '', post = '';
+      if (a < 0.999) { var key = String(Math.round(a * 100)); this.alphas[key] = a; pre = 'q /GS' + key + ' gs '; post = ' Q'; }
+      this.out.push(pre + col.rgb + ' rg BT /' + face + ' ' + pf(size) + ' Tf ' + pf(tz) + ' Tz 1 0 0 -1 ' + pf(x + dx) + ' ' + pf(y + dy) + ' Tm ' + pdfStr(t) + ' Tj ET' + post);
+    },
+    stream: function () { var s = this.out.join('\n'); while (this.depth-- > 0) s += '\nQ'; return s; }
+  };
+
   function renderPdfBytes(project, screens) {
     var vp = VIEWPORTS[project.viewport] || VIEWPORTS.mobile, k = 0.75;
-    var pw = Math.round(vp.w * k * 100) / 100, ph = Math.round(vp.h * k * 100) / 100;
+    var pw = Math.round(vp.w * k * 100) / 100, ph = Math.round(vp.h * k * 100) / 100, alphas = {};
+    var contents = screens.map(function (sc) { var c = new PdfCtx(vp.w, vp.h, k, alphas); drawScreen(c, sc, vp); return c.stream(); });
     var enc = function (str) { var u = new Uint8Array(str.length); for (var i = 0; i < str.length; i++) u[i] = str.charCodeAt(i) & 255; return u; };
     var chunks = [], pos = 0, offs = [];
     function put(x) { var u = typeof x === 'string' ? enc(x) : x; chunks.push(u); pos += u.length; }
-    function obj(n, body) { offs[n] = pos; put(n + ' 0 obj\n'); if (typeof body === 'string') put(body); else body(); put('\nendobj\n'); }
-    var N = screens.length, imgs = screens.map(function (sc) {
-      var cv = renderScreenCanvas(sc, project.viewport, 2), b64 = cv.toDataURL('image/jpeg', 0.92).split(',')[1], bin = atob(b64), u = new Uint8Array(bin.length);
-      for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
-      return { w: cv.width, h: cv.height, data: u };
-    });
+    function obj(n, body) { offs[n] = pos; put(n + ' 0 obj\n' + body + '\nendobj\n'); }
+    var N = screens.length, FONT0 = 3 + N * 2, gs = Object.keys(alphas), GS0 = FONT0 + 4;
+    var fonts = '/Font << /F1 ' + FONT0 + ' 0 R /F2 ' + (FONT0 + 1) + ' 0 R /F3 ' + (FONT0 + 2) + ' 0 R /F4 ' + (FONT0 + 3) + ' 0 R >>';
+    var gsRes = gs.length ? ' /ExtGState << ' + gs.map(function (key, i) { return '/GS' + key + ' ' + (GS0 + i) + ' 0 R'; }).join(' ') + ' >>' : '';
     put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
     obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
-    var kids = []; for (var i = 0; i < N; i++) kids.push((3 + i * 3) + ' 0 R');
+    var kids = []; for (var i = 0; i < N; i++) kids.push((3 + i * 2) + ' 0 R');
     obj(2, '<< /Type /Pages /Count ' + N + ' /Kids [' + kids.join(' ') + '] >>');
-    imgs.forEach(function (im, i) {
-      var pn = 3 + i * 3, cn = pn + 1, xn = pn + 2, content = 'q ' + pw + ' 0 0 ' + ph + ' 0 0 cm /Im0 Do Q';
-      obj(pn, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pw + ' ' + ph + '] /Resources << /XObject << /Im0 ' + xn + ' 0 R >> >> /Contents ' + cn + ' 0 R >>');
-      obj(cn, '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream');
-      obj(xn, function () {
-        put('<< /Type /XObject /Subtype /Image /Width ' + im.w + ' /Height ' + im.h + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + im.data.length + ' >>\nstream\n');
-        put(im.data); put('\nendstream');
-      });
+    contents.forEach(function (c, i) {
+      var pn = 3 + i * 2, cn = pn + 1;
+      obj(pn, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pw + ' ' + ph + '] /Resources << ' + fonts + gsRes + ' >> /Contents ' + cn + ' 0 R >>');
+      var body = enc(c);
+      offs[cn] = pos; put(cn + ' 0 obj\n<< /Length ' + body.length + ' >>\nstream\n'); put(body); put('\nendstream\nendobj\n');
     });
-    var total = 3 + N * 3, xref = pos;
+    ['Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique', 'Helvetica-BoldOblique'].forEach(function (nm, i) {
+      obj(FONT0 + i, '<< /Type /Font /Subtype /Type1 /BaseFont /' + nm + ' /Encoding /WinAnsiEncoding >>');
+    });
+    gs.forEach(function (key, i) { obj(GS0 + i, '<< /Type /ExtGState /ca ' + alphas[key] + ' /CA ' + alphas[key] + ' >>'); });
+    var total = GS0 + gs.length, xref = pos;
     put('xref\n0 ' + total + '\n0000000000 65535 f \n');
     for (var n = 1; n < total; n++) put(('0000000000' + offs[n]).slice(-10) + ' 00000 n \n');
     put('trailer\n<< /Size ' + total + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
