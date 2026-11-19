@@ -66,6 +66,8 @@
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-screens" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="7" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/><rect x="13" y="14" width="8" height="7" rx="1.5"/></symbol>
     <symbol id="i-ruler" viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></symbol>
+    <symbol id="i-connect" viewBox="0 0 24 24"><rect x="2.5" y="3" width="7" height="6" rx="1.5"/><rect x="14.5" y="15" width="7" height="6" rx="1.5"/><path d="M9.5 6h5v9"/><path d="M12.5 12.5l2 2.5 2-2.5"/></symbol>
+    <symbol id="i-disconnect" viewBox="0 0 24 24"><rect x="2.5" y="3" width="7" height="6" rx="1.5"/><rect x="14.5" y="15" width="7" height="6" rx="1.5"/><path d="M9.5 6h3M17 11v1.5"/><path d="M4 20L20 4"/></symbol>
     <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
     <symbol id="i-backup" viewBox="0 0 24 24"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
     <symbol id="i-restore" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/><path d="M12 8v5l3 2"/></symbol>
@@ -395,6 +397,10 @@
     <button type="button" id="el-group" class="icon-btn" data-action="group" aria-label="Agrupar (Ctrl+G)" title="Agrupar (Ctrl+G)"><svg class="icon" aria-hidden="true"><use href="#i-group"/></svg></button>
     <button type="button" id="el-ungroup" class="icon-btn" data-action="ungroup" aria-label="Desagrupar (Ctrl+Shift+G)" title="Desagrupar (Ctrl+Shift+G)"><svg class="icon" aria-hidden="true"><use href="#i-ungroup"/></svg></button>
   </div>
+  <div class="sb-group" id="sel-connect" role="group" aria-label="Setas conectoras" hidden>
+    <button type="button" id="el-connect" class="icon-btn" data-action="connect" aria-label="Ligar os dois elementos com uma seta" title="Ligar os dois elementos com uma seta"><svg class="icon" aria-hidden="true"><use href="#i-connect"/></svg></button>
+    <button type="button" id="el-disconnect" class="icon-btn" data-action="disconnect" aria-label="Desconectar a seta" title="Desconectar a seta (ela deixa de acompanhar os elementos)"><svg class="icon" aria-hidden="true"><use href="#i-disconnect"/></svg></button>
+  </div>
   <div class="sb-group" id="sel-align" role="group" aria-label="Alinhar e distribuir" hidden>
       <button type="button" class="icon-btn" data-action="align-left" aria-label="Alinhar à esquerda" title="Alinhar à esquerda"><svg class="icon" aria-hidden="true"><use href="#i-align-left"/></svg></button>
       <button type="button" class="icon-btn" data-action="align-hcenter" aria-label="Centralizar na horizontal" title="Centralizar na horizontal"><svg class="icon" aria-hidden="true"><use href="#i-align-hcenter"/></svg></button>
@@ -626,7 +632,7 @@
     </div>
     <div class="about-hero">
       <img src="./icon-192.png" alt="" width="72" height="72">
-      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.17.0</span></p>
+      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.18.0</span></p>
     </div>
 
     <h3>Propósito</h3>

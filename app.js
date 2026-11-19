@@ -169,9 +169,13 @@
           locked: !!e.locked,
           hidden: !!e.hidden,
           r: COMPONENTS[e.type].radius ? E.normR(e.r) : null,
-          g: (typeof e.g === 'string' && e.g) ? e.g.slice(0, 40) : null
+          g: (typeof e.g === 'string' && e.g) ? e.g.slice(0, 40) : null,
+          from: e.type === 'arrow' && typeof e.from === 'string' ? e.from.slice(0, 100) : null,
+          to: e.type === 'arrow' && typeof e.to === 'string' ? e.to.slice(0, 100) : null,
+          p: e.type === 'arrow' && Array.isArray(e.p) && e.p.length === 4 && e.p.every(function (v) { return typeof v === 'number' && isFinite(v); }) ? e.p.slice() : null
         };
       });
+      E.syncConnectors(els);
       var gcnt = {};
       els.forEach(function (e) { if (e.g) gcnt[e.g] = (gcnt[e.g] || 0) + 1; });
       els.forEach(function (e) { if (e.g && gcnt[e.g] < 2) e.g = null; });
@@ -521,6 +525,10 @@
     var ia = $('insp-align'); if (ia) ia.hidden = n < 2;
     var gsel = engine.selectedElements(), anyG = gsel.some(function (x) { return x.g; });
     var gb = $('sel-group'); if (gb) gb.hidden = n < 2 && !anyG;
+    var nonArr = gsel.filter(function (x) { return x.type !== 'arrow'; }), anyB = gsel.some(E.isBound);
+    var cb2 = $('sel-connect'); if (cb2) cb2.hidden = !(nonArr.length === 2 && n === 2) && !anyB;
+    setDisabled('el-connect', !(nonArr.length === 2 && n === 2));
+    setDisabled('el-disconnect', !anyB);
     setDisabled('el-group', n < 2);
     setDisabled('el-ungroup', !anyG);
     Array.prototype.forEach.call(document.querySelectorAll('[data-action="dist-h"],[data-action="dist-v"]'), function (b) { b.disabled = n < 3; });
@@ -1378,7 +1386,9 @@
     var copy = JSON.parse(JSON.stringify(sc));
     copy.id = E.uid();
     copy.name = (sc.name + ' (cópia)').slice(0, 60);
-    copy.elements.forEach(function (e) { e.id = E.uid(); });
+    var idm = {};
+    copy.elements.forEach(function (e) { var n = E.uid(); idm[e.id] = n; e.id = n; });
+    copy.elements.forEach(function (e) { if (e.from) e.from = idm[e.from] || null; if (e.to) e.to = idm[e.to] || null; });
     var i = p.screens.indexOf(sc);
     p.screens.splice(i + 1, 0, copy);
     p.activeScreenId = copy.id;
@@ -2305,6 +2315,8 @@
     'snippet-save': saveSnippet,
     'snippet-rename': function (btn) { renameSnippet(btn.dataset.id); },
     'snippet-delete': function (btn) { deleteSnippet(btn.dataset.id); },
+    'connect': function () { engine.connectSelected(); },
+    'disconnect': function () { engine.disconnectSelected(); },
     'group': function () { engine.groupSelected(); },
     'ungroup': function () { engine.ungroupSelected(); },
     'align-left': function () { engine.alignSelected('left'); },

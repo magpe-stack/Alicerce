@@ -174,12 +174,53 @@
     return sv;
   }
 
+  /* Setas conectoras: `from`/`to` = ids de elementos da mesma tela. A seta liga as bordas dos dois (centro a centro)
+     e `p` guarda os extremos [x1,y1,x2,y2] em coordenadas da tela. Espelhar a seta inverte o sentido. */
+  function isBound(a) { return !!(a && a.type === 'arrow' && a.from && a.to); }
+  function unbindArrow(a) {
+    if (a.p && a.p.length === 4) { a.flipH = a.p[0] > a.p[2]; a.flipV = a.p[1] > a.p[3]; }
+    a.from = null; a.to = null; a.p = null;
+  }
+  function edgePoint(R, dx, dy) {
+    var cx = R.x + R.w / 2, cy = R.y + R.h / 2, t = Infinity;
+    if (Math.abs(dx) > 1e-9) t = Math.min(t, (R.w / 2) / Math.abs(dx));
+    if (Math.abs(dy) > 1e-9) t = Math.min(t, (R.h / 2) / Math.abs(dy));
+    if (!isFinite(t)) t = 0;
+    return { x: cx + dx * t, y: cy + dy * t };
+  }
+  function syncConnectors(els) {
+    var byId = {}, changed = [];
+    els.forEach(function (e) { byId[e.id] = e; });
+    els.forEach(function (a) {
+      if (a.type !== 'arrow' || (!a.from && !a.to)) return;
+      var A = byId[a.from], B = byId[a.to];
+      if (!A || !B || A === B || A === a || B === a || A.type === 'arrow' || B.type === 'arrow') { unbindArrow(a); changed.push(a); return; }
+      var ax = A.x + A.w / 2, ay = A.y + A.h / 2, bx = B.x + B.w / 2, by = B.y + B.h / 2, dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy);
+      var ux = len > 1e-6 ? dx / len : 1, uy = len > 1e-6 ? dy / len : 0, gap = 2;
+      var s0 = edgePoint(A, ux, uy), e0 = edgePoint(B, -ux, -uy);
+      var sx = s0.x + ux * gap, sy = s0.y + uy * gap, ex = e0.x - ux * gap, ey = e0.y - uy * gap;
+      if ((ex - sx) * ux + (ey - sy) * uy < 4) { sx = ax; sy = ay; ex = bx; ey = by; if (len < 4) { ex = ax + 8; ey = ay; } }
+      if (!!a.flipH !== !!a.flipV) { var tx = sx, ty = sy; sx = ex; sy = ey; ex = tx; ey = ty; }
+      var r1 = function (v) { return Math.round(v * 10) / 10; };
+      var pp = [r1(sx), r1(sy), r1(ex), r1(ey)];
+      var minx = Math.min(sx, ex), maxx = Math.max(sx, ex), miny = Math.min(sy, ey), maxy = Math.max(sy, ey);
+      var w = Math.max(24, Math.ceil(maxx - minx + 12)), h = Math.max(24, Math.ceil(maxy - miny + 12));
+      var nx = Math.round((minx + maxx) / 2 - w / 2), ny = Math.round((miny + maxy) / 2 - h / 2);
+      var same = a.p && a.p.length === 4 && a.p[0] === pp[0] && a.p[1] === pp[1] && a.p[2] === pp[2] && a.p[3] === pp[3] && a.x === nx && a.y === ny && a.w === w && a.h === h;
+      if (same) return;
+      a.p = pp; a.x = nx; a.y = ny; a.w = w; a.h = h;
+      changed.push(a);
+    });
+    return changed;
+  }
+
   /* Seta de fluxo: reta ao longo do lado maior; se o lado menor passar de 28 px, vira diagonal de canto a canto.
      A espelhada na horizontal/vertical inverte o sentido (a ponta muda de lado). */
   var ARROW_DIAG = 28;
   function arrowPts(el) {
     var w = el.w, hh = el.h, pad = 4, x1, y1, x2, y2;
-    if (Math.min(w, hh) > ARROW_DIAG) { x1 = pad; y1 = pad; x2 = w - pad; y2 = hh - pad; if (el.flipH) { var tx = x1; x1 = x2; x2 = tx; } if (el.flipV) { var ty = y1; y1 = y2; y2 = ty; } }
+    if (isBound(el) && el.p && el.p.length === 4) { x1 = el.p[0] - el.x; y1 = el.p[1] - el.y; x2 = el.p[2] - el.x; y2 = el.p[3] - el.y; }
+    else if (Math.min(w, hh) > ARROW_DIAG) { x1 = pad; y1 = pad; x2 = w - pad; y2 = hh - pad; if (el.flipH) { var tx = x1; x1 = x2; x2 = tx; } if (el.flipV) { var ty = y1; y1 = y2; y2 = ty; } }
     else if (w >= hh) { y1 = y2 = hh / 2; x1 = pad; x2 = w - pad; if (el.flipH) { x1 = w - pad; x2 = pad; } }
     else { x1 = x2 = w / 2; y1 = pad; y2 = hh - pad; if (el.flipV) { y1 = hh - pad; y2 = pad; } }
     var dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len;
@@ -392,6 +433,7 @@
     node.style.width = el.w + 'px';
     node.style.height = el.h + 'px';
     if (el.type === 'scrollbar') node.classList.toggle('is-horiz', el.w > el.h);
+    if (el.type === 'arrow') node.classList.toggle('is-bound', isBound(el));
     if (el.r && COMPONENTS[el.type] && COMPONENTS[el.type].radius) {
       node.style.setProperty('--c-radius', fitRadii(el.r, el.w, el.h).map(function (v) { return v + 'px'; }).join(' '));
     } else node.style.removeProperty('--c-radius');
@@ -464,6 +506,7 @@
       this.screen = screen;
       if (viewport) this.viewport = viewport;
       this.selection = [];
+      if (screen) syncConnectors(screen.elements);
       this._sizeStage();
       this.render();
       if (opts && opts.fit) this.fit();
@@ -587,13 +630,56 @@
       if (wasSel && hadHandles) addHandles(node);
     }
 
-    _geom(el) {
+    _geomNode(el) {
       var node = this.nodes.get(el.id);
       if (!node) return;
       applyGeom(node, el);
       if (el.type === 'arrow') { var old = node.querySelector('.wf-arrow-svg'); if (old) old.replaceWith(arrowSvg(el)); }
       node.setAttribute('aria-label', describe(el));
+    }
+
+    _geom(el) {
+      this._geomNode(el);
+      this._syncNodes();
       if (el.g) this._groupBoxes();
+    }
+
+    /* Recalcula as setas conectoras e atualiza só os nós que mudaram. */
+    _syncNodes() {
+      if (!this.screen) return;
+      var ch = syncConnectors(this.screen.elements), self = this;
+      ch.forEach(function (a) { self._geomNode(a); });
+      return ch.length > 0;
+    }
+
+    /* Liga com uma seta os DOIS elementos selecionados (o primeiro selecionado é a origem). */
+    connectSelected() {
+      var els = this.selectedElements().filter(function (e) { return e.type !== 'arrow'; });
+      if (els.length !== 2) return false;
+      var c = COMPONENTS.arrow;
+      var a = { id: uid(), type: 'arrow', x: 0, y: 0, w: c.w, h: c.h, text: '', checked: false, fill: '', stroke: '', color: '', flipH: false, flipV: false, r: null, locked: false, hidden: false, g: null, from: els[0].id, to: els[1].id, p: null };
+      this.screen.elements.push(a);
+      var n = buildNode(a);
+      this.nodes.set(a.id, n);
+      this.stage.appendChild(n);
+      this._syncNodes();
+      this._geomNode(a);
+      this.select([a.id], false, true);
+      this.cb.onChange(null, 'connect');
+      this.announce('Seta ligando os dois elementos. Ao movê-los, ela acompanha.');
+      return true;
+    }
+
+    /* Solta as setas conectoras selecionadas: viram setas comuns, na posição atual. */
+    disconnectSelected() {
+      var self = this, arr = this.selectedElements().filter(isBound);
+      if (!arr.length) return false;
+      arr.forEach(function (a) { unbindArrow(a); self._geomNode(a); });
+      this._decorate();
+      this.cb.onSelection(this.selection.slice());
+      this.cb.onChange(null, 'disconnect');
+      this.announce(arr.length === 1 ? 'Seta desconectada.' : arr.length + ' setas desconectadas.');
+      return true;
     }
 
     /* Grupos: elementos com o mesmo `g` se comportam como uma peça. `exact` seleciona só os ids dados (Alt+clique, camadas). */
@@ -706,6 +792,7 @@
         self.nodes.delete(id);
       });
       this.selection = kept;
+      this._syncNodes();
       this._decorate();
       this._cleanGroups();
       this.cb.onSelection(kept.slice());
@@ -717,7 +804,8 @@
     _cloneEls(els, off) {
       var vp = this.vp, cnt = {}, gmap = {};
       els.forEach(function (e) { if (e.g) cnt[e.g] = (cnt[e.g] || 0) + 1; });
-      return els.map(function (e) {
+      var idmap = {};
+      var out = els.map(function (e) {
         var c = {
           id: uid(), type: e.type, text: e.text || '', checked: !!e.checked,
           fill: normHex(e.fill), stroke: normHex(e.stroke), color: normHex(e.color),
@@ -727,8 +815,17 @@
         };
         c.x = clamp(c.x, 0, Math.max(0, vp.w - c.w));
         c.y = clamp(c.y, 0, Math.max(0, vp.h - c.h));
+        idmap[e.id] = c.id;
+        c._src = e;
         return c;
       });
+      /* setas conectoras: só continuam ligadas se os dois extremos foram copiados juntos */
+      out.forEach(function (c) {
+        var e = c._src; delete c._src;
+        if (isBound(e) && idmap[e.from] && idmap[e.to]) { c.from = idmap[e.from]; c.to = idmap[e.to]; c.p = null; }
+        else if (isBound(e)) { var t = { p: e.p, flipH: false, flipV: false, from: 1, to: 1 }; unbindArrow(t); c.flipH = t.flipH; c.flipV = t.flipV; }
+      });
+      return out;
     }
 
     _addMany(list) {
@@ -739,6 +836,7 @@
         self.nodes.set(el.id, n);
         self.stage.appendChild(n);
       });
+      this._syncNodes();
       this.select(list.map(function (e) { return e.id; }));
       this.focusSelected();
     }
@@ -922,9 +1020,11 @@
         minX = Math.min(minX, e.x); minY = Math.min(minY, e.y);
         maxR = Math.max(maxR, e.x + e.w); maxB = Math.max(maxB, e.y + e.h);
       });
+      var inSet = {}; els.forEach(function (e) { inSet[e.id] = true; });
       els.forEach(function (e) {
-        if (horiz) { e.x = minX + maxR - (e.x + e.w); e.flipH = !e.flipH; }
-        else { e.y = minY + maxB - (e.y + e.h); e.flipV = !e.flipV; }
+        var both = isBound(e) && inSet[e.from] && inSet[e.to];
+        if (horiz) { e.x = minX + maxR - (e.x + e.w); if (!both) e.flipH = !e.flipH; }
+        else { e.y = minY + maxB - (e.y + e.h); if (!both) e.flipV = !e.flipV; }
         if (e.r) e.r = horiz ? [e.r[1], e.r[0], e.r[3], e.r[2]] : [e.r[3], e.r[2], e.r[1], e.r[0]];
         var node = self.nodes.get(e.id);
         self._geom(e);
@@ -1003,7 +1103,7 @@
         w: Math.round(R - L), h: Math.round(B - T),
         elements: order.map(function (e) {
           return { type: e.type, x: Math.round(e.x - L), y: Math.round(e.y - T), w: e.w, h: e.h, text: e.text || '', checked: !!e.checked,
-            fill: e.fill || '', stroke: e.stroke || '', color: e.color || '', flipH: !!e.flipH, flipV: !!e.flipV, r: e.r || null,
+            fill: e.fill || '', stroke: e.stroke || '', color: e.color || '', flipH: isBound(e) ? e.p[0] > e.p[2] : !!e.flipH, flipV: isBound(e) ? e.p[1] > e.p[3] : !!e.flipV, r: e.r || null,
             g: (e.g && cnt[e.g] > 1) ? e.g : null };
         })
       };
@@ -2334,6 +2434,9 @@
     VIEWPORTS: VIEWPORTS,
     GRID: GRID,
     MIN_SIZE: MIN_SIZE,
+    syncConnectors: syncConnectors,
+    isBound: isBound,
+    unbindArrow: unbindArrow,
     uid: uid,
     normHex: normHex,
     normR: normR,

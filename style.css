@@ -770,3 +770,7 @@ body.rulers-on .workspace { margin: 18px 0 0 18px; }
 }
 @media (max-width: 420px) { .hide-xs { display: none !important; } }
 @media (max-width: 380px) { .app-header .brand-name { display: none; } .hide-xxs { display: none !important; } }
+
+.wf-arrow .wf-body { overflow: visible; }
+.wf.is-bound .handle { display: none; }
+.wf.is-bound { cursor: pointer; }
