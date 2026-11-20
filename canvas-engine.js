@@ -205,13 +205,18 @@
         var sgx = dx < 0 ? -1 : 1, sgy = dy < 0 ? -1 : 1, hOk = Math.abs(dx) > A.w / 2 + 6 && Math.abs(dy) > B.h / 2 + 6, vOk = Math.abs(dy) > A.h / 2 + 6 && Math.abs(dx) > B.w / 2 + 6;
         if (hOk && (Math.abs(dx) >= Math.abs(dy) || !vOk)) { sx = ax + sgx * (A.w / 2 + gap); sy = ay; cc = [bx, ay]; ex = bx; ey = by - sgy * (B.h / 2 + gap); }
         else if (vOk) { sx = ax; sy = ay + sgy * (A.h / 2 + gap); cc = [ax, by]; ex = bx - sgx * (B.w / 2 + gap); ey = by; }
+        else {
+          var hzOk = Math.abs(dx) > A.w / 2 + B.w / 2 + 12 && Math.abs(dy) >= 2, vzOk = Math.abs(dy) > A.h / 2 + B.h / 2 + 12 && Math.abs(dx) >= 2;
+          if (hzOk && (Math.abs(dx) >= Math.abs(dy) || !vzOk)) { sx = ax + sgx * (A.w / 2 + gap); sy = ay; ex = bx - sgx * (B.w / 2 + gap); ey = by; var mxz = (sx + ex) / 2; cc = [mxz, sy, mxz, ey]; }
+          else if (vzOk) { sx = ax; sy = ay + sgy * (A.h / 2 + gap); ex = bx; ey = by - sgy * (B.h / 2 + gap); var myz = (sy + ey) / 2; cc = [sx, myz, ex, myz]; }
+        }
       }
       if (!!a.flipH !== !!a.flipV) { var tx = sx, ty = sy; sx = ex; sy = ey; ex = tx; ey = ty; }
       var r1 = function (v) { return Math.round(v * 10) / 10; };
       var pp = [r1(sx), r1(sy), r1(ex), r1(ey)];
-      if (cc) cc = [r1(cc[0]), r1(cc[1])];
+      if (cc) cc = cc.map(r1);
       var minx = Math.min(sx, ex), maxx = Math.max(sx, ex), miny = Math.min(sy, ey), maxy = Math.max(sy, ey);
-      if (cc) { minx = Math.min(minx, cc[0]); maxx = Math.max(maxx, cc[0]); miny = Math.min(miny, cc[1]); maxy = Math.max(maxy, cc[1]); }
+      if (cc) for (var ci = 0; ci < cc.length; ci += 2) { minx = Math.min(minx, cc[ci]); maxx = Math.max(maxx, cc[ci]); miny = Math.min(miny, cc[ci + 1]); maxy = Math.max(maxy, cc[ci + 1]); }
       var w = Math.max(24, Math.ceil(maxx - minx + 12)), h = Math.max(24, Math.ceil(maxy - miny + 12));
       var nx = Math.round((minx + maxx) / 2 - w / 2), ny = Math.round((miny + maxy) / 2 - h / 2);
       var same = a.p && a.p.length === 4 && a.p[0] === pp[0] && a.p[1] === pp[1] && a.p[2] === pp[2] && a.p[3] === pp[3] && a.x === nx && a.y === ny && a.w === w && a.h === h && JSON.stringify(a.c || null) === JSON.stringify(cc);
@@ -233,16 +238,24 @@
     else { x1 = x2 = w / 2; y1 = pad; y2 = hh - pad; if (el.flipV) { y1 = hh - pad; y2 = pad; } }
     var cx = null, cy = null, mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
     var dx = x2 - x1, dy = y2 - y1;
-    if (isBound(el) && el.c && el.c.length === 2) {
-      cx = el.c[0] - el.x; cy = el.c[1] - el.y; dx = x2 - cx; dy = y2 - cy;
-      var l1 = Math.hypot(cx - x1, cy - y1), l2 = Math.hypot(x2 - cx, y2 - cy), half = (l1 + l2) / 2;
-      if (half <= l1 && l1 > 0) { mx = x1 + (cx - x1) * half / l1; my = y1 + (cy - y1) * half / l1; }
-      else if (l2 > 0) { var k = (half - l1) / l2; mx = cx + (x2 - cx) * k; my = cy + (y2 - cy) * k; }
+    var pts = null;
+    if (isBound(el) && el.c && (el.c.length === 2 || el.c.length === 4)) {
+      pts = [[x1, y1]];
+      for (var ci = 0; ci < el.c.length; ci += 2) pts.push([el.c[ci] - el.x, el.c[ci + 1] - el.y]);
+      pts.push([x2, y2]);
+      var lp = pts[pts.length - 2]; cx = pts[1][0]; cy = pts[1][1]; dx = x2 - lp[0]; dy = y2 - lp[1];
+      var tot = 0, i, segs = [];
+      for (i = 1; i < pts.length; i++) { var sl = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); segs.push(sl); tot += sl; }
+      var rest = tot / 2;
+      for (i = 0; i < segs.length; i++) {
+        if (rest <= segs[i] || i === segs.length - 1) { var kk = segs[i] ? rest / segs[i] : 0; mx = pts[i][0] + (pts[i + 1][0] - pts[i][0]) * kk; my = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * kk; break; }
+        rest -= segs[i];
+      }
     }
     var len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len;
     var hl = Math.min(14, len * 0.6), hw = hl * 0.5;
     var bx = x2 - ux * hl, by = y2 - uy * hl;
-    return { cx: cx, cy: cy, mx: mx, my: my, x1: x1, y1: y1, x2: x2, y2: y2, bx: bx, by: by, lx: bx - uy * hw, ly: by + ux * hw, rx: bx + uy * hw, ry: by - ux * hw };
+    return { pts: pts, cx: cx, cy: cy, mx: mx, my: my, x1: x1, y1: y1, x2: x2, y2: y2, bx: bx, by: by, lx: bx - uy * hw, ly: by + ux * hw, rx: bx + uy * hw, ry: by - ux * hw };
   }
   function placeLabel(lb, el) {
     if (isBound(el) && el.c) { var a = arrowPts(el); lb.style.left = a.mx + 'px'; lb.style.top = a.my + 'px'; }
@@ -251,7 +264,7 @@
   function arrowSvg(el) {
     var a = arrowPts(el), f = function (n) { return Math.round(n * 100) / 100; };
     var sv = s('svg', { viewBox: '0 0 ' + el.w + ' ' + el.h, 'class': 'wf-arrow-svg', 'aria-hidden': 'true' });
-    if (a.cx !== null) sv.appendChild(s('polyline', { points: [a.x1, a.y1, a.cx, a.cy, a.bx, a.by].map(f).join(','), fill: 'none', 'stroke-linejoin': 'round' }));
+    if (a.cx !== null) sv.appendChild(s('polyline', { points: a.pts.slice(0, -1).concat([[a.bx, a.by]]).map(function (q) { return f(q[0]) + ',' + f(q[1]); }).join(' '), fill: 'none', 'stroke-linejoin': 'round' }));
     else sv.appendChild(s('line', { x1: f(a.x1), y1: f(a.y1), x2: f(a.bx), y2: f(a.by) }));
     sv.appendChild(s('polygon', { points: [a.x2, a.y2, a.lx, a.ly, a.rx, a.ry].map(f).join(',') }));
     return sv;
@@ -2086,7 +2099,7 @@
       case 'arrow': {
         var ap = arrowPts(el);
         ctx.strokeStyle = line; ctx.fillStyle = line; ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.moveTo(ap.x1, ap.y1); if (ap.cx !== null) ctx.lineTo(ap.cx, ap.cy); ctx.lineTo(ap.bx, ap.by); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ap.x1, ap.y1); if (ap.pts) for (var pi = 1; pi < ap.pts.length - 1; pi++) ctx.lineTo(ap.pts[pi][0], ap.pts[pi][1]); ctx.lineTo(ap.bx, ap.by); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(ap.x2, ap.y2); ctx.lineTo(ap.lx, ap.ly); ctx.lineTo(ap.rx, ap.ry); ctx.closePath(); ctx.fill();
         if (t) {
           ctx.font = '600 12px ' + FONT;
