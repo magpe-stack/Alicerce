@@ -632,6 +632,7 @@
     fillGoSelect(el);
     $('insp-elbow-field').hidden = !(el.type === 'arrow' && el.from && el.to);
     $('insp-elbow').checked = !!el.elbow;
+    $('insp-route-field').hidden = $('insp-elbow-field').hidden || !el.elbow;
     set('insp-x', Math.round(el.x));
     set('insp-y', Math.round(el.y));
     set('insp-w', Math.round(el.w));
