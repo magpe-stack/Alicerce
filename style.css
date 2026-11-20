@@ -820,3 +820,4 @@ body.preview-on [data-action="preview"]{outline:2px solid var(--art-sel,#2563eb)
 .fm-name{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fm-list{margin:8px 0 0;padding-left:20px;font-size:.85rem;color:var(--text-muted);max-height:84px;overflow:auto}
 .fm-list:empty{display:none}
+.fm-head{fill:currentColor}
