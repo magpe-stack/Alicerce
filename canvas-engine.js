@@ -179,7 +179,7 @@
   function isBound(a) { return !!(a && a.type === 'arrow' && a.from && a.to); }
   function unbindArrow(a) {
     if (a.p && a.p.length === 4) { a.flipH = a.p[0] > a.p[2]; a.flipV = a.p[1] > a.p[3]; }
-    a.from = null; a.to = null; a.p = null; a.c = null; a.elbow = false; a.bend = null; a.ori = null;
+    a.from = null; a.to = null; a.p = null; a.c = null; a.elbow = false; a.bend = null; a.ori = null; a.fa = null; a.ta = null;
   }
   function edgePoint(R, dx, dy) {
     var cx = R.x + R.w / 2, cy = R.y + R.h / 2, t = Infinity;
@@ -187,6 +187,24 @@
     if (Math.abs(dy) > 1e-9) t = Math.min(t, (R.h / 2) / Math.abs(dy));
     if (!isFinite(t)) t = 0;
     return { x: cx + dx * t, y: cy + dy * t };
+  }
+  function sideOk(k) { return k === 't' || k === 'b' || k === 'l' || k === 'r' ? k : null; }
+  function anchorPt(R, k, gap) {
+    var cx = R.x + R.w / 2, cy = R.y + R.h / 2;
+    if (k === 't') return { x: cx, y: R.y - gap, o: 'v' };
+    if (k === 'b') return { x: cx, y: R.y + R.h + gap, o: 'v' };
+    if (k === 'l') return { x: R.x - gap, y: cy, o: 'h' };
+    return { x: R.x + R.w + gap, y: cy, o: 'h' };
+  }
+  function facingSide(R, pt) {
+    var cx = R.x + R.w / 2, cy = R.y + R.h / 2, ox = pt.x - cx, oy = pt.y - cy;
+    return Math.abs(ox) * R.h >= Math.abs(oy) * R.w ? (ox >= 0 ? 'r' : 'l') : (oy >= 0 ? 'b' : 't');
+  }
+  /* Lado do retângulo mais próximo de um ponto; null se o ponto está na região central (ligação automática). */
+  function sideFromPoint(R, x, y) {
+    var rx = (x - (R.x + R.w / 2)) / (R.w / 2), ry = (y - (R.y + R.h / 2)) / (R.h / 2);
+    if (Math.max(Math.abs(rx), Math.abs(ry)) < 0.55) return null;
+    return Math.abs(rx) >= Math.abs(ry) ? (rx > 0 ? 'r' : 'l') : (ry > 0 ? 'b' : 't');
   }
   function syncConnectors(els) {
     var byId = {}, changed = [];
@@ -211,6 +229,24 @@
           var hzOk = Math.abs(dx) > A.w / 2 + B.w / 2 + 12 && Math.abs(dy) >= 2, vzOk = Math.abs(dy) > A.h / 2 + B.h / 2 + 12 && Math.abs(dx) >= 2;
           if (hzOk && (Math.abs(dx) >= Math.abs(dy) || !vzOk)) { sx = ax + sgx * (A.w / 2 + gap); sy = ay; ex = bx - sgx * (B.w / 2 + gap); ey = by; var bz = typeof a.bend === 'number' ? a.bend : 0.5, mxz = sx + (ex - sx) * bz; cc = [mxz, sy, mxz, ey]; }
           else if (vzOk) { sx = ax; sy = ay + sgy * (A.h / 2 + gap); ex = bx; ey = by - sgy * (B.h / 2 + gap); var bz2 = typeof a.bend === 'number' ? a.bend : 0.5, myz = sy + (ey - sy) * bz2; cc = [sx, myz, ex, myz]; }
+        }
+      }
+      var fa = sideOk(a.fa), ta = sideOk(a.ta);
+      if (fa || ta) {
+        var refA = ta ? anchorPt(B, ta, gap) : { x: bx, y: by }, refB = fa ? anchorPt(A, fa, gap) : { x: ax, y: ay };
+        if (a.elbow) {
+          var sd = fa || facingSide(A, refA), ed = ta || facingSide(B, refB);
+          var S = anchorPt(A, sd, gap), E = anchorPt(B, ed, gap), bn = typeof a.bend === 'number' ? a.bend : 0.5;
+          sx = S.x; sy = S.y; ex = E.x; ey = E.y; cc = null;
+          if (S.o !== E.o) cc = S.o === 'h' ? [E.x, S.y] : [S.x, E.y];
+          else if (S.o === 'h' && Math.abs(S.y - E.y) >= 2) { var mx1 = S.x + (E.x - S.x) * bn; cc = [mx1, S.y, mx1, E.y]; }
+          else if (S.o === 'v' && Math.abs(S.x - E.x) >= 2) { var my1 = S.y + (E.y - S.y) * bn; cc = [S.x, my1, E.x, my1]; }
+        } else {
+          var S2, E2, ddx = refA.x - ax, ddy = refA.y - ay, l1 = Math.hypot(ddx, ddy) || 1;
+          if (fa) S2 = anchorPt(A, fa, gap); else { var q1 = edgePoint(A, ddx / l1, ddy / l1); S2 = { x: q1.x + ddx / l1 * gap, y: q1.y + ddy / l1 * gap }; }
+          var ex2 = refB.x - bx, ey2 = refB.y - by, l2 = Math.hypot(ex2, ey2) || 1;
+          if (ta) E2 = anchorPt(B, ta, gap); else { var q2 = edgePoint(B, ex2 / l2, ey2 / l2); E2 = { x: q2.x + ex2 / l2 * gap, y: q2.y + ey2 / l2 * gap }; }
+          sx = S2.x; sy = S2.y; ex = E2.x; ey = E2.y; cc = null;
         }
       }
       if (!!a.flipH !== !!a.flipV) { var tx = sx, ty = sy; sx = ex; sy = ey; ex = tx; ey = ty; }
@@ -891,7 +927,7 @@
       /* setas conectoras: só continuam ligadas se os dois extremos foram copiados juntos */
       out.forEach(function (c) {
         var e = c._src; delete c._src;
-        if (isBound(e) && idmap[e.from] && idmap[e.to]) { c.from = idmap[e.from]; c.to = idmap[e.to]; c.p = null; c.elbow = !!e.elbow; c.bend = e.bend == null ? null : e.bend; c.ori = e.ori || null; c.c = null; }
+        if (isBound(e) && idmap[e.from] && idmap[e.to]) { c.from = idmap[e.from]; c.to = idmap[e.to]; c.p = null; c.elbow = !!e.elbow; c.bend = e.bend == null ? null : e.bend; c.ori = e.ori || null; c.fa = sideOk(e.fa); c.ta = sideOk(e.ta); c.c = null; }
         else if (isBound(e)) { var t = { p: e.p, flipH: false, flipV: false, from: 1, to: 1 }; unbindArrow(t); c.flipH = t.flipH; c.flipV = t.flipV; }
       });
       return out;
@@ -1595,8 +1631,13 @@
       var tailIsFrom = !flipped, movingFrom = (d.which === 'tail') === tailIsFrom;
       var other = movingFrom ? el.to : el.from;
       var t = this._targetAt(e.clientX, e.clientY, [other]);
-      if (d.target && (!t || d.target !== t.id)) { var on = this.nodes.get(d.target); if (on) on.classList.remove('is-link-target'); d.target = null; }
-      if (t) { d.target = t.id; var tn = this.nodes.get(t.id); if (tn) tn.classList.add('is-link-target'); }
+      if (d.target && (!t || d.target !== t.id)) { var on = this.nodes.get(d.target); if (on) { on.classList.remove('is-link-target'); delete on.dataset.anchor; } d.target = null; }
+      if (t) {
+        d.target = t.id; var tn = this.nodes.get(t.id);
+        var sr0 = this.stage.getBoundingClientRect();
+        d.anchor = sideFromPoint(t, (e.clientX - sr0.left) / this.zoom, (e.clientY - sr0.top) / this.zoom);
+        if (tn) { tn.classList.add('is-link-target'); if (d.anchor) tn.dataset.anchor = d.anchor; else delete tn.dataset.anchor; }
+      }
       var sr = this.stage.getBoundingClientRect(), eh = d.node.querySelector('.end-handle[data-end="' + d.which + '"]');
       if (eh) { eh.style.left = ((e.clientX - sr.left) / this.zoom - el.x) + 'px'; eh.style.top = ((e.clientY - sr.top) / this.zoom - el.y) + 'px'; }
       d.movingFrom = movingFrom;
@@ -1604,13 +1645,13 @@
 
     _finishEnd(cancel) {
       var d = this.endDrag, el = d && this.find(d.id);
-      if (d && d.target) { var tn = this.nodes.get(d.target); if (tn) tn.classList.remove('is-link-target'); }
+      if (d && d.target) { var tn = this.nodes.get(d.target); if (tn) { tn.classList.remove('is-link-target'); delete tn.dataset.anchor; } }
       this.mode = null;
       if (!d || !el) return;
       if (d.moved && d.target && !cancel) {
-        var cur = d.movingFrom ? el.from : el.to;
-        if (d.target !== cur) {
-          if (d.movingFrom) el.from = d.target; else el.to = d.target;
+        var cur = d.movingFrom ? el.from : el.to, curA = (d.movingFrom ? el.fa : el.ta) || null, nA = d.anchor || null;
+        if (d.target !== cur || nA !== curA) {
+          if (d.movingFrom) { el.from = d.target; el.fa = nA; } else { el.to = d.target; el.ta = nA; }
           this._geom(el);
           this._decorate();
           this.cb.onChange(null, 'reconnect');

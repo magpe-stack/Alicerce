@@ -174,6 +174,8 @@
           from: e.type === 'arrow' && typeof e.from === 'string' ? e.from.slice(0, 100) : null,
           to: e.type === 'arrow' && typeof e.to === 'string' ? e.to.slice(0, 100) : null,
           elbow: e.type === 'arrow' && !!e.elbow && !!e.from && !!e.to,
+          fa: e.type === 'arrow' && /^[tblr]$/.test(e.fa) ? e.fa : null,
+          ta: e.type === 'arrow' && /^[tblr]$/.test(e.ta) ? e.ta : null,
           bend: e.type === 'arrow' && typeof e.bend === 'number' && isFinite(e.bend) ? Math.max(0.05, Math.min(0.95, e.bend)) : null,
           ori: e.type === 'arrow' && (e.ori === 'h' || e.ori === 'v') ? e.ori : null,
           c: null,
