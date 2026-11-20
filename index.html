@@ -65,6 +65,7 @@
     <symbol id="i-github" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+    <symbol id="i-flow" viewBox="0 0 24 24"><rect x="2.5" y="4" width="6" height="6" rx="1.2"/><rect x="15.5" y="14" width="6" height="6" rx="1.2"/><path d="M8.5 7h4a3 3 0 0 1 3 3v4" fill="none"/><path d="M13.5 12.5l2 2 2-2" fill="none"/></symbol>
     <symbol id="i-screens" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="7" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/><rect x="13" y="14" width="8" height="7" rx="1.5"/></symbol>
     <symbol id="i-ruler" viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></symbol>
     <symbol id="i-connect" viewBox="0 0 24 24"><rect x="2.5" y="3" width="7" height="6" rx="1.5"/><rect x="14.5" y="15" width="7" height="6" rx="1.5"/><path d="M9.5 6h5v9"/><path d="M12.5 12.5l2 2.5 2-2.5"/></symbol>
@@ -252,6 +253,7 @@
     <div id="screen-tabs" class="tabs" role="tablist" aria-label="Telas do projeto"></div>
     <div class="tab-actions" role="group" aria-label="Gerenciar telas">
       <button type="button" class="icon-btn" data-action="preview" aria-pressed="false" aria-label="Testar protótipo" title="Testar protótipo (navegar entre as telas)"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg></button>
+      <button type="button" class="icon-btn" data-action="flow-map" aria-label="Mapa do fluxo" title="Mapa do fluxo (como as telas se ligam)"><svg class="icon" aria-hidden="true"><use href="#i-flow"/></svg></button>
       <button type="button" class="icon-btn" data-action="screens-overview" aria-label="Visão geral das telas" title="Visão geral das telas"><svg class="icon" aria-hidden="true"><use href="#i-screens"/></svg></button>
       <button type="button" class="icon-btn" data-action="screen-add" aria-label="Nova tela" title="Nova tela"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>
       <button type="button" class="icon-btn" data-action="screen-rename" aria-label="Renomear tela atual" title="Renomear tela"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
@@ -604,6 +606,22 @@
   </div>
 </dialog>
 
+<dialog id="dlg-flowmap" class="dlg-wide dlg-overview" aria-labelledby="fm-title">
+  <div class="dlg-form">
+    <div class="dlg-head">
+      <h2 id="fm-title">Mapa do fluxo</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Fechar"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p class="muted" id="fm-help">Cada seta mostra para onde um botão leva (definido em Ao tocar, ir para). Clique numa tela para abri-la.</p>
+    <div id="fm-scroll" class="fm-scroll" tabindex="0" role="region" aria-label="Mapa do fluxo, rolável" aria-describedby="fm-help"><div id="fm-wrap" class="fm-wrap"></div></div>
+    <ul id="fm-list" class="fm-list" aria-label="Ligações entre as telas"></ul>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-secondary" data-action="screens-overview-from-map">Visão geral</button>
+      <button type="button" class="btn btn-primary" data-close>Fechar</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="dlg-export" class="dlg-wide" aria-labelledby="export-title">
   <div class="dlg-form">
     <div class="dlg-head">
@@ -655,7 +673,7 @@
     </div>
     <div class="about-hero">
       <img src="./icon-192.png" alt="" width="72" height="72">
-      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.28.0</span></p>
+      <p><strong>Alicerce</strong><br><span class="muted">Wireframes para interfaces de PWAs — versão 1.29.0</span></p>
     </div>
 
     <h3>Propósito</h3>

@@ -1540,11 +1540,118 @@
     });
   }
 
+  function bindFlowMap() {
+    $('fm-wrap').addEventListener('click', function (ev) {
+      var c = ev.target.closest('.fm-card');
+      if (c) { $('dlg-flowmap').close(); switchScreen(c.dataset.screen); }
+    });
+  }
+
   function openOverview() {
     renderOverview();
     showDialog($('dlg-overview'));
     var cur = $('ov-grid').querySelector('.is-current .ov-open');
     if (cur) cur.focus();
+  }
+
+  /* ================================================================== mapa do fluxo */
+  function flowEdges(p) {
+    var byId = {}; p.screens.forEach(function (sc) { byId[sc.id] = sc; });
+    var map = {}, list = [];
+    p.screens.forEach(function (sc) {
+      sc.elements.forEach(function (e) {
+        if (!e.go || e.go === sc.id || !byId[e.go]) return;
+        var k = sc.id + '>' + e.go, label = String(e.text || '').indexOf('\n') < 0 ? String(e.text || '').trim() : ''; if (!label) label = COMPONENTS[e.type] ? COMPONENTS[e.type].label : '';
+        if (!map[k]) { map[k] = { from: sc.id, to: e.go, labels: [] }; list.push(map[k]); }
+        if (map[k].labels.indexOf(label) < 0) map[k].labels.push(label);
+      });
+    });
+    return list;
+  }
+
+  function renderFlowMap() {
+    var p = state.project, vp = E.VIEWPORTS[p.viewport] || E.VIEWPORTS.mobile, wrap = $('fm-wrap'), list = $('fm-list');
+    wrap.textContent = ''; list.textContent = '';
+    var edges = flowEdges(p), out = {};
+    edges.forEach(function (e) { (out[e.from] = out[e.from] || []).push(e.to); });
+    /* colunas = distância (em toques) a partir da primeira tela; telas soltas começam novas linhas */
+    var col = {}, row = {}, counts = {}, placed = 0;
+    function place(id, c) {
+      col[id] = c; row[id] = counts[c] = (counts[c] == null ? 0 : counts[c] + 1); placed++;
+    }
+    function bfs(start, base) {
+      if (col[start] != null) return;
+      place(start, base);
+      var q = [start];
+      while (q.length) {
+        var cur = q.shift();
+        (out[cur] || []).forEach(function (t) { if (col[t] == null) { place(t, col[cur] + 1); q.push(t); } });
+      }
+    }
+    bfs(p.screens[0].id, 0);
+    p.screens.forEach(function (sc) { if (col[sc.id] == null) bfs(sc.id, 0); });
+    var CW = vp.w >= 900 ? 240 : 160, CH = Math.round(CW * vp.h / vp.w), GX = 110, GY = 64, PAD = 24, TOP = 28 + 20;
+    var cols = 0, rows = 0;
+    p.screens.forEach(function (sc) { cols = Math.max(cols, col[sc.id] + 1); rows = Math.max(rows, row[sc.id] + 1); });
+    var W = PAD * 2 + cols * CW + (cols - 1) * GX, H = TOP + PAD + rows * (CH + 30) + (rows - 1) * GY + 70;
+    wrap.style.width = W + 'px'; wrap.style.height = H + 'px';
+    var NS = 'http://www.w3.org/2000/svg', sv = document.createElementNS(NS, 'svg');
+    sv.setAttribute('class', 'fm-svg'); sv.setAttribute('width', W); sv.setAttribute('height', H); sv.setAttribute('viewBox', '0 0 ' + W + ' ' + H); sv.setAttribute('aria-hidden', 'true');
+    sv.innerHTML = '<defs><marker id="fm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>';
+    wrap.appendChild(sv);
+    var pos = {};
+    p.screens.forEach(function (sc, i) {
+      var x = PAD + col[sc.id] * (CW + GX), y = TOP + row[sc.id] * (CH + 30 + GY);
+      pos[sc.id] = { x: x, y: y, w: CW, h: CH };
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'fm-card' + (sc.id === p.activeScreenId ? ' is-current' : ''); b.dataset.screen = sc.id;
+      b.style.left = x + 'px'; b.style.top = y + 'px'; b.style.width = CW + 'px';
+      b.setAttribute('aria-label', 'Abrir a tela ' + sc.name);
+      var cv = E.renderScreenCanvas(sc, p.viewport, CW / vp.w); cv.setAttribute('aria-hidden', 'true'); b.appendChild(cv);
+      var nm = document.createElement('span'); nm.className = 'fm-name'; nm.textContent = sc.name; b.appendChild(nm);
+      wrap.appendChild(b);
+    });
+    var backN = {};
+    edges.forEach(function (ed) {
+      var a = pos[ed.from], t = pos[ed.to], ca = col[ed.from], ct = col[ed.to], d, mx, my;
+      if (ct > ca) {
+        var sx = a.x + a.w, sy = a.y + a.h / 2, ex = t.x, ey = t.y + t.h / 2, k = (ex - sx) / 2;
+        d = 'M' + sx + ',' + sy + ' C' + (sx + k) + ',' + sy + ' ' + (ex - k) + ',' + ey + ' ' + (ex - 2) + ',' + ey; mx = (sx + ex) / 2; my = (sy + ey) / 2;
+      } else if (ct === ca) {
+        var down = row[ed.to] > row[ed.from], sx2 = a.x + a.w / 2, sy2 = down ? a.y + a.h : a.y, ey2 = down ? t.y - 2 : t.y + t.h + 2;
+        var ex2 = t.x + t.w / 2;
+        d = 'M' + sx2 + ',' + sy2 + ' L' + ex2 + ',' + ey2; mx = (sx2 + ex2) / 2; my = (sy2 + ey2) / 2;
+      } else {
+        var n = backN[ca + '>' + ct] = (backN[ca + '>' + ct] || 0) + 1, depth = 28 + 18 * n;
+        var sx3 = a.x + a.w / 2, sy3 = a.y + a.h + 24, ex3 = t.x + t.w / 2, ey3 = t.y + t.h + 26, by = Math.max(sy3, ey3) + depth;
+        d = 'M' + sx3 + ',' + sy3 + ' C' + sx3 + ',' + by + ' ' + ex3 + ',' + by + ' ' + ex3 + ',' + (ey3 + 2); mx = (sx3 + ex3) / 2; my = (Math.max(sy3, ey3) + by * 3) / 4 + 0;
+        my = (sy3 + 3 * by + 3 * by + ey3) / 8;
+      }
+      var path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', d); path.setAttribute('class', 'fm-edge'); path.setAttribute('marker-end', 'url(#fm-arrow)');
+      sv.appendChild(path);
+      var txt = ed.labels.slice(0, 2).join(' · ') + (ed.labels.length > 2 ? ' +' + (ed.labels.length - 2) : '');
+      if (txt.length > 26) txt = txt.slice(0, 25) + '…';
+      var g = document.createElementNS(NS, 'g');
+      var rc = document.createElementNS(NS, 'rect'), tx = document.createElementNS(NS, 'text');
+      tx.setAttribute('x', mx); tx.setAttribute('y', my + 4); tx.setAttribute('text-anchor', 'middle'); tx.setAttribute('class', 'fm-label'); tx.textContent = txt;
+      var tw = txt.length * 6.6 + 12;
+      rc.setAttribute('x', mx - tw / 2); rc.setAttribute('y', my - 10); rc.setAttribute('width', tw); rc.setAttribute('height', 20); rc.setAttribute('rx', 5); rc.setAttribute('class', 'fm-label-bg');
+      g.appendChild(rc); g.appendChild(tx); sv.appendChild(g);
+      var li = document.createElement('li');
+      var from = p.screens.filter(function (x) { return x.id === ed.from; })[0].name, to = p.screens.filter(function (x) { return x.id === ed.to; })[0].name;
+      li.textContent = from + ' → ' + to + ': ' + ed.labels.join(', ');
+      list.appendChild(li);
+    });
+    $('fm-help').textContent = edges.length ? 'Cada seta mostra para onde um botão leva (definido em Ao tocar, ir para). Clique numa tela para abri-la.' : 'Nenhum elemento aponta para outra tela ainda. Selecione um elemento e escolha uma tela em Ao tocar, ir para; ou crie um fluxo pronto em Nova tela.';
+  }
+
+  function openFlowMap() {
+    renderFlowMap();
+    showDialog($('dlg-flowmap'));
+    var cur = $('fm-wrap').querySelector('.is-current');
+    if (cur) cur.focus({ preventScroll: true });
+    $('fm-scroll').scrollLeft = 0; $('fm-scroll').scrollTop = 0;
   }
 
   async function addScreen() {
@@ -2534,6 +2641,8 @@
     'screen-rename': renameScreen,
     'screen-dup': duplicateScreen,
     'screens-overview': openOverview,
+    'flow-map': openFlowMap,
+    'screens-overview-from-map': function () { $('dlg-flowmap').close(); openOverview(); },
     'preview': function () { setPreview(!state.preview); },
     'preview-exit': function () { setPreview(false); },
     'preview-back': previewBack,
@@ -2780,6 +2889,7 @@
     window.addEventListener('resize', schedulePositionSelBar);
     bindInspector();
     bindOverview();
+    bindFlowMap();
     bindClipboardEvents();
     bindUI();
     registerSW();

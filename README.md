@@ -130,6 +130,10 @@ Como no CSS, raios que somados passam do tamanho do lado são reduzidos proporci
 
 Cada elemento pode apontar para outra tela: selecione-o e, no painel de propriedades, escolha em **Ao tocar, ir para** a tela de destino (uma pequena seta azul no canto do elemento indica que ele tem destino; ela não aparece nas exportações). O botão **▶ Testar protótipo**, ao lado das abas de telas, liga o modo de teste: a prancheta passa a ser só de visualização, os elementos com destino pulsam e tocar neles leva à tela escolhida. A barra *Testando* mostra a tela atual, **Voltar** retorna pelo caminho percorrido e **Sair do teste** (ou `Esc`) volta à tela onde o teste começou. No teste nada é movido, editado nem adicionado. Ao excluir uma tela, os destinos que apontavam para ela são limpos; duplicar a tela ou o projeto preserva os destinos.
 
+### Mapa do fluxo
+
+O botão **Mapa do fluxo** (ícone de duas telas ligadas, ao lado de *Visão geral*) mostra todas as telas lado a lado, com uma seta para cada ligação definida em *Ao tocar, ir para*. A etiqueta da seta é o texto do botão (ou o nome do componente, quando ele tem várias linhas) e, se vários elementos levam ao mesmo destino, as etiquetas se juntam. As telas se organizam em colunas, conforme o número de toques desde a primeira tela; telas sem ligação começam uma nova linha. Setas de volta passam por baixo. Clique numa tela para abri-la; a tela atual aparece com borda mais grossa. Abaixo do mapa há uma lista em texto das mesmas ligações, para leitores de tela. Sem nenhuma ligação, o mapa mostra uma dica de como criá-las.
+
 ### Menu (☰)
 
 Abre a gaveta lateral com: **Novo Projeto**, **Meus Projetos**, abrir/salvar arquivo, exportar/importar/compartilhar, imprimir, **Backup Geral**, **Restaurar Backup**, seletor dos 4 temas, modo claro/escuro, tela cheia, **Instalar**, **Sobre**, GitHub e Ajuda.
