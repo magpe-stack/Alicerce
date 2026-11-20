@@ -179,7 +179,7 @@
   function isBound(a) { return !!(a && a.type === 'arrow' && a.from && a.to); }
   function unbindArrow(a) {
     if (a.p && a.p.length === 4) { a.flipH = a.p[0] > a.p[2]; a.flipV = a.p[1] > a.p[3]; }
-    a.from = null; a.to = null; a.p = null;
+    a.from = null; a.to = null; a.p = null; a.c = null; a.elbow = false;
   }
   function edgePoint(R, dx, dy) {
     var cx = R.x + R.w / 2, cy = R.y + R.h / 2, t = Infinity;
@@ -200,15 +200,23 @@
       var s0 = edgePoint(A, ux, uy), e0 = edgePoint(B, -ux, -uy);
       var sx = s0.x + ux * gap, sy = s0.y + uy * gap, ex = e0.x - ux * gap, ey = e0.y - uy * gap;
       if ((ex - sx) * ux + (ey - sy) * uy < 4) { sx = ax; sy = ay; ex = bx; ey = by; if (len < 4) { ex = ax + 8; ey = ay; } }
+      var cc = null;
+      if (a.elbow) {
+        var sgx = dx < 0 ? -1 : 1, sgy = dy < 0 ? -1 : 1, hOk = Math.abs(dx) > A.w / 2 + 6 && Math.abs(dy) > B.h / 2 + 6, vOk = Math.abs(dy) > A.h / 2 + 6 && Math.abs(dx) > B.w / 2 + 6;
+        if (hOk && (Math.abs(dx) >= Math.abs(dy) || !vOk)) { sx = ax + sgx * (A.w / 2 + gap); sy = ay; cc = [bx, ay]; ex = bx; ey = by - sgy * (B.h / 2 + gap); }
+        else if (vOk) { sx = ax; sy = ay + sgy * (A.h / 2 + gap); cc = [ax, by]; ex = bx - sgx * (B.w / 2 + gap); ey = by; }
+      }
       if (!!a.flipH !== !!a.flipV) { var tx = sx, ty = sy; sx = ex; sy = ey; ex = tx; ey = ty; }
       var r1 = function (v) { return Math.round(v * 10) / 10; };
       var pp = [r1(sx), r1(sy), r1(ex), r1(ey)];
+      if (cc) cc = [r1(cc[0]), r1(cc[1])];
       var minx = Math.min(sx, ex), maxx = Math.max(sx, ex), miny = Math.min(sy, ey), maxy = Math.max(sy, ey);
+      if (cc) { minx = Math.min(minx, cc[0]); maxx = Math.max(maxx, cc[0]); miny = Math.min(miny, cc[1]); maxy = Math.max(maxy, cc[1]); }
       var w = Math.max(24, Math.ceil(maxx - minx + 12)), h = Math.max(24, Math.ceil(maxy - miny + 12));
       var nx = Math.round((minx + maxx) / 2 - w / 2), ny = Math.round((miny + maxy) / 2 - h / 2);
-      var same = a.p && a.p.length === 4 && a.p[0] === pp[0] && a.p[1] === pp[1] && a.p[2] === pp[2] && a.p[3] === pp[3] && a.x === nx && a.y === ny && a.w === w && a.h === h;
+      var same = a.p && a.p.length === 4 && a.p[0] === pp[0] && a.p[1] === pp[1] && a.p[2] === pp[2] && a.p[3] === pp[3] && a.x === nx && a.y === ny && a.w === w && a.h === h && JSON.stringify(a.c || null) === JSON.stringify(cc);
       if (same) return;
-      a.p = pp; a.x = nx; a.y = ny; a.w = w; a.h = h;
+      a.c = cc; a.p = pp; a.x = nx; a.y = ny; a.w = w; a.h = h;
       changed.push(a);
     });
     return changed;
@@ -223,15 +231,28 @@
     else if (Math.min(w, hh) > ARROW_DIAG) { x1 = pad; y1 = pad; x2 = w - pad; y2 = hh - pad; if (el.flipH) { var tx = x1; x1 = x2; x2 = tx; } if (el.flipV) { var ty = y1; y1 = y2; y2 = ty; } }
     else if (w >= hh) { y1 = y2 = hh / 2; x1 = pad; x2 = w - pad; if (el.flipH) { x1 = w - pad; x2 = pad; } }
     else { x1 = x2 = w / 2; y1 = pad; y2 = hh - pad; if (el.flipV) { y1 = hh - pad; y2 = pad; } }
-    var dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len;
+    var cx = null, cy = null, mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    var dx = x2 - x1, dy = y2 - y1;
+    if (isBound(el) && el.c && el.c.length === 2) {
+      cx = el.c[0] - el.x; cy = el.c[1] - el.y; dx = x2 - cx; dy = y2 - cy;
+      var l1 = Math.hypot(cx - x1, cy - y1), l2 = Math.hypot(x2 - cx, y2 - cy), half = (l1 + l2) / 2;
+      if (half <= l1 && l1 > 0) { mx = x1 + (cx - x1) * half / l1; my = y1 + (cy - y1) * half / l1; }
+      else if (l2 > 0) { var k = (half - l1) / l2; mx = cx + (x2 - cx) * k; my = cy + (y2 - cy) * k; }
+    }
+    var len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len;
     var hl = Math.min(14, len * 0.6), hw = hl * 0.5;
     var bx = x2 - ux * hl, by = y2 - uy * hl;
-    return { x1: x1, y1: y1, x2: x2, y2: y2, bx: bx, by: by, lx: bx - uy * hw, ly: by + ux * hw, rx: bx + uy * hw, ry: by - ux * hw };
+    return { cx: cx, cy: cy, mx: mx, my: my, x1: x1, y1: y1, x2: x2, y2: y2, bx: bx, by: by, lx: bx - uy * hw, ly: by + ux * hw, rx: bx + uy * hw, ry: by - ux * hw };
+  }
+  function placeLabel(lb, el) {
+    if (isBound(el) && el.c) { var a = arrowPts(el); lb.style.left = a.mx + 'px'; lb.style.top = a.my + 'px'; }
+    else { lb.style.left = ''; lb.style.top = ''; }
   }
   function arrowSvg(el) {
     var a = arrowPts(el), f = function (n) { return Math.round(n * 100) / 100; };
     var sv = s('svg', { viewBox: '0 0 ' + el.w + ' ' + el.h, 'class': 'wf-arrow-svg', 'aria-hidden': 'true' });
-    sv.appendChild(s('line', { x1: f(a.x1), y1: f(a.y1), x2: f(a.bx), y2: f(a.by) }));
+    if (a.cx !== null) sv.appendChild(s('polyline', { points: [a.x1, a.y1, a.cx, a.cy, a.bx, a.by].map(f).join(','), fill: 'none', 'stroke-linejoin': 'round' }));
+    else sv.appendChild(s('line', { x1: f(a.x1), y1: f(a.y1), x2: f(a.bx), y2: f(a.by) }));
     sv.appendChild(s('polygon', { points: [a.x2, a.y2, a.lx, a.ly, a.rx, a.ry].map(f).join(',') }));
     return sv;
   }
@@ -272,7 +293,7 @@
         break;
       case 'arrow':
         body.appendChild(arrowSvg(el));
-        if (t) body.appendChild(h('div', 'wf-arrow-label', String(t).split('\n')[0]));
+        if (t) { var lb = h('div', 'wf-arrow-label', String(t).split('\n')[0]); placeLabel(lb, el); body.appendChild(lb); }
         break;
       case 'list':
         String(t).split('\n').forEach(function (line) {
@@ -644,7 +665,7 @@
       var node = this.nodes.get(el.id);
       if (!node) return;
       applyGeom(node, el);
-      if (el.type === 'arrow') { var old = node.querySelector('.wf-arrow-svg'); if (old) old.replaceWith(arrowSvg(el)); }
+      if (el.type === 'arrow') { var old = node.querySelector('.wf-arrow-svg'); if (old) old.replaceWith(arrowSvg(el)); var lbl = node.querySelector('.wf-arrow-label'); if (lbl) placeLabel(lbl, el); }
       node.setAttribute('aria-label', describe(el));
     }
 
@@ -833,7 +854,7 @@
       /* setas conectoras: só continuam ligadas se os dois extremos foram copiados juntos */
       out.forEach(function (c) {
         var e = c._src; delete c._src;
-        if (isBound(e) && idmap[e.from] && idmap[e.to]) { c.from = idmap[e.from]; c.to = idmap[e.to]; c.p = null; }
+        if (isBound(e) && idmap[e.from] && idmap[e.to]) { c.from = idmap[e.from]; c.to = idmap[e.to]; c.p = null; c.elbow = !!e.elbow; c.c = null; }
         else if (isBound(e)) { var t = { p: e.p, flipH: false, flipV: false, from: 1, to: 1 }; unbindArrow(t); c.flipH = t.flipH; c.flipV = t.flipV; }
       });
       return out;
@@ -974,6 +995,7 @@
         if (k in patch) { el[k] = normHex(patch[k]); styleChanged = true; }
       });
       if ('r' in patch && c.radius) el.r = normR(patch.r);
+      if ('elbow' in patch && isBound(el)) { el.elbow = !!patch.elbow; if (!el.elbow) el.c = null; }
       if ('go' in patch) el.go = patch.go ? String(patch.go).slice(0, 100) : null;
       ['flipH', 'flipV'].forEach(function (k) {
         if (k in patch) { el[k] = !!patch[k]; styleChanged = true; }
@@ -2064,11 +2086,11 @@
       case 'arrow': {
         var ap = arrowPts(el);
         ctx.strokeStyle = line; ctx.fillStyle = line; ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.moveTo(ap.x1, ap.y1); ctx.lineTo(ap.bx, ap.by); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ap.x1, ap.y1); if (ap.cx !== null) ctx.lineTo(ap.cx, ap.cy); ctx.lineTo(ap.bx, ap.by); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(ap.x2, ap.y2); ctx.lineTo(ap.lx, ap.ly); ctx.lineTo(ap.rx, ap.ry); ctx.closePath(); ctx.fill();
         if (t) {
           ctx.font = '600 12px ' + FONT;
-          var lab = truncate(ctx, String(t).split('\n')[0], 240), lw = ctx.measureText(lab).width + 14, lx = (ap.x1 + ap.x2) / 2, ly = (ap.y1 + ap.y2) / 2;
+          var lab = truncate(ctx, String(t).split('\n')[0], 240), lw = ctx.measureText(lab).width + 14, lx = ap.mx, ly = ap.my;
           ctx.fillStyle = PAPER; ctx.strokeStyle = line; ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.moveTo(lx - lw / 2 + 4, ly - 11); ctx.arcTo(lx + lw / 2, ly - 11, lx + lw / 2, ly + 11, 4); ctx.arcTo(lx + lw / 2, ly + 11, lx - lw / 2, ly + 11, 4); ctx.arcTo(lx - lw / 2, ly + 11, lx - lw / 2, ly - 11, 4); ctx.arcTo(lx - lw / 2, ly - 11, lx + lw / 2, ly - 11, 4); ctx.closePath(); ctx.fill(); ctx.stroke();
           ctx.fillStyle = txt; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, lx, ly + 1);

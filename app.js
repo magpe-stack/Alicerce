@@ -173,6 +173,8 @@
           go: (typeof e.go === 'string' && e.go) ? e.go.slice(0, 100) : null,
           from: e.type === 'arrow' && typeof e.from === 'string' ? e.from.slice(0, 100) : null,
           to: e.type === 'arrow' && typeof e.to === 'string' ? e.to.slice(0, 100) : null,
+          elbow: e.type === 'arrow' && !!e.elbow && !!e.from && !!e.to,
+          c: null,
           p: e.type === 'arrow' && Array.isArray(e.p) && e.p.length === 4 && e.p.every(function (v) { return typeof v === 'number' && isFinite(v); }) ? e.p.slice() : null
         };
       });
@@ -626,6 +628,8 @@
     var set = function (id, val) { var f = $(id); if (force || document.activeElement !== f) f.value = val; };
     set('insp-text', el.text || '');
     fillGoSelect(el);
+    $('insp-elbow-field').hidden = !(el.type === 'arrow' && el.from && el.to);
+    $('insp-elbow').checked = !!el.elbow;
     set('insp-x', Math.round(el.x));
     set('insp-y', Math.round(el.y));
     set('insp-w', Math.round(el.w));
@@ -1093,6 +1097,10 @@
       inp.addEventListener('change', function () { syncInspector(true); });
     });
     $('insp-locked').addEventListener('change', function (ev) { engine.toggleLockSelected(ev.target.checked); });
+    $('insp-elbow').addEventListener('change', function (ev) {
+      var el = single(); if (!el) return;
+      engine.updateElement(el.id, { elbow: ev.target.checked }, null);
+    });
     $('insp-go').addEventListener('change', function (ev) {
       var el = single(); if (!el) return;
       engine.updateElement(el.id, { go: ev.target.value || null }, null);
