@@ -1308,7 +1308,43 @@
     return { id: 'flow-auth', name: 'Fluxo: entrar e navegar', desc: 'Cria 3 telas ligadas (Login, Início e Perfil) com os botões já apontando para a tela certa. Toque em ▶ para testar.',
       screens: screens, build: screens[0].build };
   }
+  function shopFlow() {
+    var screens = [
+      { key: 'list', name: 'Lista', build: function (W, H) {
+        return tplById('list').build(W, H).map(function (e) { if (e.type === 'list') e.go = 'detail'; if (e.type === 'navbar') e.text = 'Loja'; return e; });
+      } },
+      { key: 'detail', name: 'Detalhe', build: function (W, H) {
+        var L = tLayout(W, H), x = L.desk ? L.cx : 16, w = L.desk ? L.cw : W - 32;
+        var out = [tEl('navbar', 0, 0, W, 56, 'Produto')];
+        if (!L.desk) out.push(tEl('hamburger', 8, 6, 44, 44));
+        return out.concat([
+          tEl('image', x, 72, w, L.desk ? 300 : 240),
+          tEl('text', x, L.desk ? 388 : 328, w, 36, 'Camiseta básica'),
+          tEl('badge', x, L.desk ? 430 : 370, 96, 24, 'R$ 59,90'),
+          tEl('text', x, L.desk ? 468 : 408, w, 80, 'Algodão macio, corte reto e três cores. Troca grátis em até 30 dias.'),
+          tEl('button', x, L.desk ? 560 : 560, w, 48, 'Comprar agora', { go: 'checkout' }),
+          tEl('button', x, L.desk ? 620 : 620, w, 48, 'Voltar à lista', { go: 'list' })
+        ]);
+      } },
+      { key: 'checkout', name: 'Pagamento', build: function (W, H) {
+        return tplById('checkout').build(W, H).map(function (e) { if (e.type === 'button' && e.text === 'Pagar agora') e.go = 'done'; return e; });
+      } },
+      { key: 'done', name: 'Confirmação', build: function (W, H) {
+        var L = tLayout(W, H), x = L.cx, cw = L.cw;
+        return [
+          tEl('navbar', 0, 0, W, 56, 'Pedido'),
+          tEl('image', (W - 120) / 2, 120, 120, 120),
+          tEl('text', x, 264, cw, 40, 'Pedido confirmado!'),
+          tEl('text', x, 312, cw, 64, 'Enviamos o recibo para o seu e-mail. Acompanhe a entrega em Meus pedidos.'),
+          tEl('button', x, 408, cw, 48, 'Continuar comprando', { go: 'list' })
+        ];
+      } }
+    ];
+    return { id: 'flow-shop', name: 'Fluxo: compra', desc: 'Cria 4 telas ligadas (Lista, Detalhe, Pagamento e Confirmação): tocar na lista abre o produto, Comprar agora leva ao pagamento e Pagar agora, à confirmação. Toque em ▶ para testar.',
+      screens: screens, build: screens[0].build };
+  }
   TEMPLATES.push(authFlow());
+  TEMPLATES.push(shopFlow());
 
   function templateThumb(tpl) {
     var NS = 'http://www.w3.org/2000/svg', W = 360, H = 800;
