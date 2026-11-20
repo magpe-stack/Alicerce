@@ -789,3 +789,8 @@ body.rulers-on .workspace { margin: 18px 0 0 18px; }
 .preview-bar[hidden]{display:none}
 .preview-name{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 body.preview-on [data-action="preview"]{outline:2px solid var(--art-sel,#2563eb)}
+
+/* ---- alça de rota das setas em L/Z (v1.23) ---- */
+.route-handle{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--art-sel,#2563eb);border:2px solid #fff;box-shadow:0 0 0 1px var(--art-sel,#2563eb);cursor:grab;z-index:5;touch-action:none}
+.route-handle::after{content:"";position:absolute;inset:-10px}
+.workspace.is-preview .route-handle{display:none}

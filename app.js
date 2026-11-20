@@ -174,6 +174,8 @@
           from: e.type === 'arrow' && typeof e.from === 'string' ? e.from.slice(0, 100) : null,
           to: e.type === 'arrow' && typeof e.to === 'string' ? e.to.slice(0, 100) : null,
           elbow: e.type === 'arrow' && !!e.elbow && !!e.from && !!e.to,
+          bend: e.type === 'arrow' && typeof e.bend === 'number' && isFinite(e.bend) ? Math.max(0.05, Math.min(0.95, e.bend)) : null,
+          ori: e.type === 'arrow' && (e.ori === 'h' || e.ori === 'v') ? e.ori : null,
           c: null,
           p: e.type === 'arrow' && Array.isArray(e.p) && e.p.length === 4 && e.p.every(function (v) { return typeof v === 'number' && isFinite(v); }) ? e.p.slice() : null
         };
@@ -1097,6 +1099,10 @@
       inp.addEventListener('change', function () { syncInspector(true); });
     });
     $('insp-locked').addEventListener('change', function (ev) { engine.toggleLockSelected(ev.target.checked); });
+    $('insp-route-reset').addEventListener('click', function () {
+      var el = single(); if (!el) return;
+      engine.updateElement(el.id, { bend: null, ori: null }, null);
+    });
     $('insp-elbow').addEventListener('change', function (ev) {
       var el = single(); if (!el) return;
       engine.updateElement(el.id, { elbow: ev.target.checked }, null);

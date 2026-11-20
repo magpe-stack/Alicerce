@@ -179,7 +179,7 @@
   function isBound(a) { return !!(a && a.type === 'arrow' && a.from && a.to); }
   function unbindArrow(a) {
     if (a.p && a.p.length === 4) { a.flipH = a.p[0] > a.p[2]; a.flipV = a.p[1] > a.p[3]; }
-    a.from = null; a.to = null; a.p = null; a.c = null; a.elbow = false;
+    a.from = null; a.to = null; a.p = null; a.c = null; a.elbow = false; a.bend = null; a.ori = null;
   }
   function edgePoint(R, dx, dy) {
     var cx = R.x + R.w / 2, cy = R.y + R.h / 2, t = Infinity;
@@ -203,12 +203,14 @@
       var cc = null;
       if (a.elbow) {
         var sgx = dx < 0 ? -1 : 1, sgy = dy < 0 ? -1 : 1, hOk = Math.abs(dx) > A.w / 2 + 6 && Math.abs(dy) > B.h / 2 + 6, vOk = Math.abs(dy) > A.h / 2 + 6 && Math.abs(dx) > B.w / 2 + 6;
-        if (hOk && (Math.abs(dx) >= Math.abs(dy) || !vOk)) { sx = ax + sgx * (A.w / 2 + gap); sy = ay; cc = [bx, ay]; ex = bx; ey = by - sgy * (B.h / 2 + gap); }
+        var pickH = hOk && (Math.abs(dx) >= Math.abs(dy) || !vOk);
+        if (a.ori === 'h' && hOk) pickH = true; else if (a.ori === 'v' && vOk) pickH = false;
+        if (pickH) { sx = ax + sgx * (A.w / 2 + gap); sy = ay; cc = [bx, ay]; ex = bx; ey = by - sgy * (B.h / 2 + gap); }
         else if (vOk) { sx = ax; sy = ay + sgy * (A.h / 2 + gap); cc = [ax, by]; ex = bx - sgx * (B.w / 2 + gap); ey = by; }
         else {
           var hzOk = Math.abs(dx) > A.w / 2 + B.w / 2 + 12 && Math.abs(dy) >= 2, vzOk = Math.abs(dy) > A.h / 2 + B.h / 2 + 12 && Math.abs(dx) >= 2;
-          if (hzOk && (Math.abs(dx) >= Math.abs(dy) || !vzOk)) { sx = ax + sgx * (A.w / 2 + gap); sy = ay; ex = bx - sgx * (B.w / 2 + gap); ey = by; var mxz = (sx + ex) / 2; cc = [mxz, sy, mxz, ey]; }
-          else if (vzOk) { sx = ax; sy = ay + sgy * (A.h / 2 + gap); ex = bx; ey = by - sgy * (B.h / 2 + gap); var myz = (sy + ey) / 2; cc = [sx, myz, ex, myz]; }
+          if (hzOk && (Math.abs(dx) >= Math.abs(dy) || !vzOk)) { sx = ax + sgx * (A.w / 2 + gap); sy = ay; ex = bx - sgx * (B.w / 2 + gap); ey = by; var bz = typeof a.bend === 'number' ? a.bend : 0.5, mxz = sx + (ex - sx) * bz; cc = [mxz, sy, mxz, ey]; }
+          else if (vzOk) { sx = ax; sy = ay + sgy * (A.h / 2 + gap); ex = bx; ey = by - sgy * (B.h / 2 + gap); var bz2 = typeof a.bend === 'number' ? a.bend : 0.5, myz = sy + (ey - sy) * bz2; cc = [sx, myz, ex, myz]; }
         }
       }
       if (!!a.flipH !== !!a.flipV) { var tx = sx, ty = sy; sx = ex; sy = ey; ex = tx; ey = ty; }
@@ -256,6 +258,17 @@
     var hl = Math.min(14, len * 0.6), hw = hl * 0.5;
     var bx = x2 - ux * hl, by = y2 - uy * hl;
     return { pts: pts, cx: cx, cy: cy, mx: mx, my: my, x1: x1, y1: y1, x2: x2, y2: y2, bx: bx, by: by, lx: bx - uy * hw, ly: by + ux * hw, rx: bx + uy * hw, ry: by - ux * hw };
+  }
+  function routeHandlePos(el) {
+    if (!(isBound(el) && el.elbow && el.c && (el.c.length === 2 || el.c.length === 4))) return null;
+    if (el.c.length === 2) return { x: el.c[0] - el.x, y: el.c[1] - el.y };
+    return { x: (el.c[0] + el.c[2]) / 2 - el.x, y: (el.c[1] + el.c[3]) / 2 - el.y };
+  }
+  function syncRouteHandle(node, el, on) {
+    var rh = node.querySelector(':scope > .route-handle'), pos = on ? routeHandlePos(el) : null;
+    if (!pos) { if (rh) rh.remove(); return; }
+    if (!rh) { rh = h('span', 'route-handle'); rh.setAttribute('aria-hidden', 'true'); rh.title = 'Arraste para ajustar a rota'; node.appendChild(rh); }
+    rh.style.left = pos.x + 'px'; rh.style.top = pos.y + 'px';
   }
   function placeLabel(lb, el) {
     if (isBound(el) && el.c) { var a = arrowPts(el); lb.style.left = a.mx + 'px'; lb.style.top = a.my + 'px'; }
@@ -600,6 +613,8 @@
         var on = sel.indexOf(id) > -1;
         node.classList.toggle('is-selected', on);
         node.setAttribute('aria-selected', on ? 'true' : 'false');
+        var el0 = self.find(id);
+        if (el0 && el0.type === 'arrow') syncRouteHandle(node, el0, on && single && !self.preview && !el0.locked);
         var hs = node.querySelectorAll('.handle');
         var locked = !!(self.find(id) || {}).locked;
         if (on && single && !locked) { if (!hs.length) addHandles(node); }
@@ -678,7 +693,7 @@
       var node = this.nodes.get(el.id);
       if (!node) return;
       applyGeom(node, el);
-      if (el.type === 'arrow') { var old = node.querySelector('.wf-arrow-svg'); if (old) old.replaceWith(arrowSvg(el)); var lbl = node.querySelector('.wf-arrow-label'); if (lbl) placeLabel(lbl, el); }
+      if (el.type === 'arrow') { var old = node.querySelector('.wf-arrow-svg'); if (old) old.replaceWith(arrowSvg(el)); var lbl = node.querySelector('.wf-arrow-label'); if (lbl) placeLabel(lbl, el); if (node.querySelector(':scope > .route-handle') || node.classList.contains('is-selected')) syncRouteHandle(node, el, this.selection.length === 1 && this.selection[0] === el.id && !this.preview); }
       node.setAttribute('aria-label', describe(el));
     }
 
@@ -867,7 +882,7 @@
       /* setas conectoras: só continuam ligadas se os dois extremos foram copiados juntos */
       out.forEach(function (c) {
         var e = c._src; delete c._src;
-        if (isBound(e) && idmap[e.from] && idmap[e.to]) { c.from = idmap[e.from]; c.to = idmap[e.to]; c.p = null; c.elbow = !!e.elbow; c.c = null; }
+        if (isBound(e) && idmap[e.from] && idmap[e.to]) { c.from = idmap[e.from]; c.to = idmap[e.to]; c.p = null; c.elbow = !!e.elbow; c.bend = e.bend == null ? null : e.bend; c.ori = e.ori || null; c.c = null; }
         else if (isBound(e)) { var t = { p: e.p, flipH: false, flipV: false, from: 1, to: 1 }; unbindArrow(t); c.flipH = t.flipH; c.flipV = t.flipV; }
       });
       return out;
@@ -1009,6 +1024,8 @@
       });
       if ('r' in patch && c.radius) el.r = normR(patch.r);
       if ('elbow' in patch && isBound(el)) { el.elbow = !!patch.elbow; if (!el.elbow) el.c = null; }
+      if ('bend' in patch && isBound(el)) el.bend = typeof patch.bend === 'number' ? Math.max(0.05, Math.min(0.95, patch.bend)) : null;
+      if ('ori' in patch && isBound(el)) el.ori = patch.ori === 'h' || patch.ori === 'v' ? patch.ori : null;
       if ('go' in patch) el.go = patch.go ? String(patch.go).slice(0, 100) : null;
       ['flipH', 'flipV'].forEach(function (k) {
         if (k in patch) { el[k] = !!patch[k]; styleChanged = true; }
@@ -1412,6 +1429,8 @@
       var node = e.target.closest('.wf');
       if (e.button === 1 || (this._space && e.pointerType === 'mouse') || this.hand) {
         this._beginPan(e);
+      } else if (e.target.closest('.route-handle') && node) {
+        this._beginRoute(e, node);
       } else if (handle && node) {
         this._beginResize(e, node, handle.dataset.h);
       } else if (node) {
@@ -1510,6 +1529,35 @@
       this.resize = { id: id, dir: dir, sx: e.clientX, sy: e.clientY, o: { x: el.x, y: el.y, w: el.w, h: el.h }, moved: false };
     }
 
+    _beginRoute(e, node) {
+      var el = this.find(node.dataset.id);
+      if (!el || !isBound(el)) return;
+      this.mode = 'route';
+      this.route = { id: el.id, moved: false };
+    }
+
+    _moveRoute(e) {
+      var el = this.find(this.route.id);
+      if (!el || !el.c) return;
+      var sr = this.stage.getBoundingClientRect(), x = (e.clientX - sr.left) / this.zoom, y = (e.clientY - sr.top) / this.zoom;
+      var byId = {}; this.screen.elements.forEach(function (q) { byId[q.id] = q; });
+      var A = byId[el.from], B = byId[el.to];
+      if (!A || !B) return;
+      this.route.moved = true;
+      if (el.c.length === 2) {
+        var ax = A.x + A.w / 2, ay = A.y + A.h / 2, bx = B.x + B.w / 2, by = B.y + B.h / 2;
+        var dh = Math.hypot(x - bx, y - ay), dv = Math.hypot(x - ax, y - by);
+        this._patch(el, { ori: dh <= dv ? 'h' : 'v' });
+      } else {
+        var flipped = !!el.flipH !== !!el.flipV, p = el.p;
+        var s0x = flipped ? p[2] : p[0], s0y = flipped ? p[3] : p[1], e0x = flipped ? p[0] : p[2], e0y = flipped ? p[1] : p[3];
+        var vertMid = Math.abs(el.c[0] - el.c[2]) < 1;
+        var t = vertMid ? (x - s0x) / ((e0x - s0x) || 1) : (y - s0y) / ((e0y - s0y) || 1);
+        this._patch(el, { bend: t });
+      }
+      this._decorate();
+    }
+
     _beginPinch() {
       this._finishDragIfMoved();
       this.ws.classList.remove('is-panning');
@@ -1526,6 +1574,7 @@
     _finishDragIfMoved() {
       if (this.mode === 'drag' && this.drag && this.drag.moved) this.cb.onChange(null, 'move');
       if (this.mode === 'resize' && this.resize && this.resize.moved) this.cb.onChange(null, 'resize');
+      if (this.mode === 'route' && this.route && this.route.moved) this.cb.onChange(null, 'route');
       this.mode = null;
     }
 
@@ -1541,6 +1590,7 @@
         this.setZoom(this.pinch.z * d / this.pinch.dist, cx, cy, this.pinch.anchor);
         return;
       }
+      if (this.mode === 'route') { this._moveRoute(e); return; }
       if (this.mode === 'marquee') {
         var mq = this.marquee;
         if (!mq.moved && Math.hypot(e.clientX - mq.sx, e.clientY - mq.sy) < 4) return;
@@ -1657,6 +1707,9 @@
         this.mode = null;
       } else if (this.mode === 'resize') {
         if (this.resize.moved) this.cb.onChange(null, 'resize');
+        this.mode = null;
+      } else if (this.mode === 'route') {
+        if (this.route.moved && !cancel) this.cb.onChange(null, 'route');
         this.mode = null;
       } else if (this.mode === 'marquee') {
         var mq2 = this.marquee;
