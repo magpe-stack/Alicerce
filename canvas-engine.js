@@ -270,6 +270,15 @@
     if (!rh) { rh = h('span', 'route-handle'); rh.setAttribute('aria-hidden', 'true'); rh.title = 'Arraste para ajustar a rota'; node.appendChild(rh); }
     rh.style.left = pos.x + 'px'; rh.style.top = pos.y + 'px';
   }
+  function syncEndHandles(node, el, on) {
+    var ok = on && isBound(el) && el.p && el.p.length === 4;
+    ['tail', 'head'].forEach(function (k, i) {
+      var eh = node.querySelector(':scope > .end-handle[data-end="' + k + '"]');
+      if (!ok) { if (eh) eh.remove(); return; }
+      if (!eh) { eh = h('span', 'end-handle'); eh.dataset.end = k; eh.setAttribute('aria-hidden', 'true'); eh.title = 'Arraste até outro elemento para religar'; node.appendChild(eh); }
+      eh.style.left = (el.p[i * 2] - el.x) + 'px'; eh.style.top = (el.p[i * 2 + 1] - el.y) + 'px';
+    });
+  }
   function placeLabel(lb, el) {
     if (isBound(el) && el.c) { var a = arrowPts(el); lb.style.left = a.mx + 'px'; lb.style.top = a.my + 'px'; }
     else { lb.style.left = ''; lb.style.top = ''; }
@@ -614,7 +623,7 @@
         node.classList.toggle('is-selected', on);
         node.setAttribute('aria-selected', on ? 'true' : 'false');
         var el0 = self.find(id);
-        if (el0 && el0.type === 'arrow') syncRouteHandle(node, el0, on && single && !self.preview && !el0.locked);
+        if (el0 && el0.type === 'arrow') { syncRouteHandle(node, el0, on && single && !self.preview && !el0.locked); syncEndHandles(node, el0, on && single && !self.preview && !el0.locked); }
         var hs = node.querySelectorAll('.handle');
         var locked = !!(self.find(id) || {}).locked;
         if (on && single && !locked) { if (!hs.length) addHandles(node); }
@@ -693,7 +702,7 @@
       var node = this.nodes.get(el.id);
       if (!node) return;
       applyGeom(node, el);
-      if (el.type === 'arrow') { var old = node.querySelector('.wf-arrow-svg'); if (old) old.replaceWith(arrowSvg(el)); var lbl = node.querySelector('.wf-arrow-label'); if (lbl) placeLabel(lbl, el); if (node.querySelector(':scope > .route-handle') || node.classList.contains('is-selected')) syncRouteHandle(node, el, this.selection.length === 1 && this.selection[0] === el.id && !this.preview); }
+      if (el.type === 'arrow') { var old = node.querySelector('.wf-arrow-svg'); if (old) old.replaceWith(arrowSvg(el)); var lbl = node.querySelector('.wf-arrow-label'); if (lbl) placeLabel(lbl, el); if (node.querySelector(':scope > .route-handle') || node.classList.contains('is-selected')) { var onSel = this.selection.length === 1 && this.selection[0] === el.id && !this.preview; syncRouteHandle(node, el, onSel); syncEndHandles(node, el, onSel && !el.locked); } }
       node.setAttribute('aria-label', describe(el));
     }
 
@@ -1429,6 +1438,8 @@
       var node = e.target.closest('.wf');
       if (e.button === 1 || (this._space && e.pointerType === 'mouse') || this.hand) {
         this._beginPan(e);
+      } else if (e.target.closest('.end-handle') && node) {
+        this._beginEnd(e, node, e.target.closest('.end-handle').dataset.end);
       } else if (e.target.closest('.route-handle') && node) {
         this._beginRoute(e, node);
       } else if (handle && node) {
@@ -1558,6 +1569,59 @@
       this._decorate();
     }
 
+    /* Religar: arrasta uma ponta da seta conectora até outro elemento. */
+    _beginEnd(e, node, which) {
+      var el = this.find(node.dataset.id);
+      if (!el || !isBound(el) || el.locked) { this.mode = null; return; }
+      this.mode = 'end';
+      this.endDrag = { id: el.id, which: which, target: null, moved: false, node: node };
+    }
+
+    _targetAt(x, y, exclude) {
+      var self = this, found = null;
+      (document.elementsFromPoint ? document.elementsFromPoint(x, y) : []).some(function (n) {
+        var w = n.closest && n.closest('.wf'), el = w && self.find(w.dataset.id);
+        if (el && el.type !== 'arrow' && !el.hidden && exclude.indexOf(el.id) < 0) { found = el; return true; }
+        return false;
+      });
+      return found;
+    }
+
+    _moveEnd(e) {
+      var d = this.endDrag, el = this.find(d.id);
+      if (!el) return;
+      d.moved = true;
+      var flipped = !!el.flipH !== !!el.flipV;
+      var tailIsFrom = !flipped, movingFrom = (d.which === 'tail') === tailIsFrom;
+      var other = movingFrom ? el.to : el.from;
+      var t = this._targetAt(e.clientX, e.clientY, [other]);
+      if (d.target && (!t || d.target !== t.id)) { var on = this.nodes.get(d.target); if (on) on.classList.remove('is-link-target'); d.target = null; }
+      if (t) { d.target = t.id; var tn = this.nodes.get(t.id); if (tn) tn.classList.add('is-link-target'); }
+      var sr = this.stage.getBoundingClientRect(), eh = d.node.querySelector('.end-handle[data-end="' + d.which + '"]');
+      if (eh) { eh.style.left = ((e.clientX - sr.left) / this.zoom - el.x) + 'px'; eh.style.top = ((e.clientY - sr.top) / this.zoom - el.y) + 'px'; }
+      d.movingFrom = movingFrom;
+    }
+
+    _finishEnd(cancel) {
+      var d = this.endDrag, el = d && this.find(d.id);
+      if (d && d.target) { var tn = this.nodes.get(d.target); if (tn) tn.classList.remove('is-link-target'); }
+      this.mode = null;
+      if (!d || !el) return;
+      if (d.moved && d.target && !cancel) {
+        var cur = d.movingFrom ? el.from : el.to;
+        if (d.target !== cur) {
+          if (d.movingFrom) el.from = d.target; else el.to = d.target;
+          this._geom(el);
+          this._decorate();
+          this.cb.onChange(null, 'reconnect');
+          this.announce('Seta religada.');
+          return;
+        }
+      }
+      this._geomNode(el);
+      this._decorate();
+    }
+
     _beginPinch() {
       this._finishDragIfMoved();
       this.ws.classList.remove('is-panning');
@@ -1575,6 +1639,7 @@
       if (this.mode === 'drag' && this.drag && this.drag.moved) this.cb.onChange(null, 'move');
       if (this.mode === 'resize' && this.resize && this.resize.moved) this.cb.onChange(null, 'resize');
       if (this.mode === 'route' && this.route && this.route.moved) this.cb.onChange(null, 'route');
+      if (this.mode === 'end') { this._finishEnd(true); return; }
       this.mode = null;
     }
 
@@ -1591,6 +1656,7 @@
         return;
       }
       if (this.mode === 'route') { this._moveRoute(e); return; }
+      if (this.mode === 'end') { this._moveEnd(e); return; }
       if (this.mode === 'marquee') {
         var mq = this.marquee;
         if (!mq.moved && Math.hypot(e.clientX - mq.sx, e.clientY - mq.sy) < 4) return;
@@ -1711,6 +1777,8 @@
       } else if (this.mode === 'route') {
         if (this.route.moved && !cancel) this.cb.onChange(null, 'route');
         this.mode = null;
+      } else if (this.mode === 'end') {
+        this._finishEnd(cancel);
       } else if (this.mode === 'marquee') {
         var mq2 = this.marquee;
         mq2.box.remove();

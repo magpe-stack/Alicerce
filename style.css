@@ -794,3 +794,9 @@ body.preview-on [data-action="preview"]{outline:2px solid var(--art-sel,#2563eb)
 .route-handle{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--art-sel,#2563eb);border:2px solid #fff;box-shadow:0 0 0 1px var(--art-sel,#2563eb);cursor:grab;z-index:5;touch-action:none}
 .route-handle::after{content:"";position:absolute;inset:-10px}
 .workspace.is-preview .route-handle{display:none}
+
+/* ---- religar pontas das setas conectoras (v1.24) ---- */
+.end-handle{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:3px;background:#fff;border:2px solid var(--art-sel,#2563eb);cursor:crosshair;z-index:6;touch-action:none}
+.end-handle::after{content:"";position:absolute;inset:-10px}
+.wf.is-link-target{outline:3px dashed var(--art-sel,#2563eb);outline-offset:3px}
+.workspace.is-preview .end-handle{display:none}
