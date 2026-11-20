@@ -1281,6 +1281,35 @@
     } }
   ];
 
+  /* Fluxos prontos: várias telas de uma vez, já com os destinos "Ao tocar, ir para" configurados
+     (go guarda a chave da tela dentro do fluxo e é trocado pelo id real ao criar). */
+  function tplById(id) { return TEMPLATES.filter(function (t) { return t.id === id; })[0]; }
+  function authFlow() {
+    var screens = [
+      { key: 'login', name: 'Login', build: function (W, H) {
+        return tplById('login').build(W, H).map(function (e) { if (e.type === 'button' && e.text === 'Entrar') e.go = 'home'; return e; });
+      } },
+      { key: 'home', name: 'Início', build: function (W, H) {
+        var L = tLayout(W, H), x = L.ax, w = L.desk ? Math.min(L.aw, 520) : L.aw;
+        return tFrame(L, 'Início', 'Início\nPerfil\nAjustes\nAjuda').concat([
+          tEl('text', x, 80, w, 36, 'Olá, Maria!'),
+          tEl('list', x, 128, w, 190, 'Novidades\nMeus pedidos\nFavoritos\nSuporte'),
+          tEl('button', x, 340, w, 48, 'Ver meu perfil', { go: 'profile' }),
+          tEl('button', x, 400, w, 48, 'Sair', { go: 'login' })
+        ]);
+      } },
+      { key: 'profile', name: 'Perfil', build: function (W, H) {
+        return tplById('profile').build(W, H).concat([
+          tEl('button', tLayout(W, H).ax, 546, tLayout(W, H).desk ? Math.min(tLayout(W, H).aw, 520) : tLayout(W, H).aw, 48, 'Voltar ao início', { go: 'home' }),
+          tEl('button', tLayout(W, H).ax, 602, tLayout(W, H).desk ? Math.min(tLayout(W, H).aw, 520) : tLayout(W, H).aw, 48, 'Sair', { go: 'login' })
+        ]);
+      } }
+    ];
+    return { id: 'flow-auth', name: 'Fluxo: entrar e navegar', desc: 'Cria 3 telas ligadas (Login, Início e Perfil) com os botões já apontando para a tela certa. Toque em ▶ para testar.',
+      screens: screens, build: screens[0].build };
+  }
+  TEMPLATES.push(authFlow());
+
   function templateThumb(tpl) {
     var NS = 'http://www.w3.org/2000/svg', W = 360, H = 800;
     var sv = document.createElementNS(NS, 'svg');
@@ -1320,19 +1349,22 @@
     }
     var radios = document.getElementsByName('ns-tpl');
     radios[0].checked = true;
+    var syncName = function (t) { nameInp.disabled = !!t.screens; };
     var sel = function () { for (var i = 0; i < radios.length; i++) if (radios[i].checked) return TEMPLATES[i]; return TEMPLATES[0]; };
     var def = 'Tela ' + (state.project.screens.length + 1);
     nameInp.value = def;
     hint.textContent = TEMPLATES[0].desc;
+    nameInp.disabled = false;
     nameInp.oninput = function () { dirty = true; };
     box.onchange = function () {
       var t = sel();
       hint.textContent = t.desc;
+      syncName(t);
       if (!dirty) nameInp.value = t.id === 'blank' ? def : uniqueScreenName(t.name);
     };
     var p = showDialog($('dlg-newscreen'));
     nameInp.focus(); nameInp.select();
-    return p.then(function (v) { return v === 'ok' ? { name: nameInp.value.trim(), tpl: sel() } : null; });
+    return p.then(function (v) { var t = sel(); return v === 'ok' ? { name: t.screens ? t.name : nameInp.value.trim(), tpl: t } : null; });
   }
 
   /* ================================================================== réguas */
@@ -1484,6 +1516,18 @@
     var r = await newScreenDialog();
     if (!r || !r.name) return;
     var vp = E.VIEWPORTS[p.viewport] || E.VIEWPORTS.mobile;
+    if (r.tpl.screens) {
+      var made = r.tpl.screens.map(function (d) { return { key: d.key, sc: { id: E.uid(), name: uniqueScreenName(d.name), elements: d.build(vp.w, vp.h).map(function (e) { e.id = E.uid(); return e; }) } }; });
+      var ids = {};
+      made.forEach(function (m) { ids[m.key] = m.sc.id; });
+      made.forEach(function (m) { m.sc.elements.forEach(function (e) { if (e.go) e.go = ids[e.go] || null; }); p.screens.push(m.sc); });
+      p.activeScreenId = made[0].sc.id;
+      engine.setScreen(made[0].sc, p.viewport);
+      renderTabs(made[0].sc.id);
+      commit('screen-add');
+      announce('Fluxo criado com ' + made.length + ' telas ligadas.');
+      return;
+    }
     var els = r.tpl.build(vp.w, vp.h).map(function (e) { e.id = E.uid(); return e; });
     var sc = { id: E.uid(), name: r.name.slice(0, 60), elements: els };
     p.screens.push(sc);
