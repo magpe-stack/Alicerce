@@ -190,6 +190,14 @@
     });
     var sids = new Set(screens.map(function (x) { return x.id; }));
     screens.forEach(function (sc) { sc.elements.forEach(function (e) { if (e.go && !sids.has(e.go)) e.go = null; }); });
+    var flowPos = null;
+    if (raw.flowPos && typeof raw.flowPos === 'object') {
+      Object.keys(raw.flowPos).forEach(function (k) {
+        var v = raw.flowPos[k];
+        if (!sids.has(k) || !v || typeof v.x !== 'number' || typeof v.y !== 'number' || !isFinite(v.x) || !isFinite(v.y)) return;
+        flowPos = flowPos || {}; flowPos[k] = { x: Math.max(0, Math.min(20000, Math.round(v.x))), y: Math.max(0, Math.min(20000, Math.round(v.y))) };
+      });
+    }
     var active = str(raw.activeScreenId, 100, '');
     if (!screens.some(function (s) { return s.id === active; })) active = screens[0].id;
     return {
@@ -197,6 +205,7 @@
       name: str(raw.name, 80, 'Projeto importado'),
       viewport: raw.viewport === 'desktop' ? 'desktop' : 'mobile',
       screens: screens,
+      flowPos: flowPos || undefined,
       activeScreenId: active,
       createdAt: numIn(raw.createdAt, 0, 8.64e15, now),
       updatedAt: numIn(raw.updatedAt, 0, 8.64e15, now),
@@ -219,6 +228,7 @@
       sc.elements.forEach(function (el) { el.id = E.uid(); });
     });
     c.screens.forEach(function (sc) { sc.elements.forEach(function (el) { if (el.go) el.go = map[el.go] || null; }); });
+    if (c.flowPos) { var fp = {}; Object.keys(c.flowPos).forEach(function (k) { if (map[k]) fp[map[k]] = c.flowPos[k]; }); c.flowPos = fp; }
     c.activeScreenId = map[c.activeScreenId] || c.screens[0].id;
     return c;
   }
@@ -1541,9 +1551,68 @@
   }
 
   function bindFlowMap() {
-    $('fm-wrap').addEventListener('click', function (ev) {
+    var wrap = $('fm-wrap'), drag = null, suppress = false;
+    function layoutNow(over) {
+      var Lo = flowLayout(state.project, over);
+      wrap.style.width = Lo.W + 'px'; wrap.style.height = Lo.H + 'px';
+      var sv = wrap.querySelector('.fm-svg');
+      sv.setAttribute('width', Lo.W); sv.setAttribute('height', Lo.H); sv.setAttribute('viewBox', '0 0 ' + Lo.W + ' ' + Lo.H);
+      drawFlowEdges(Lo, sv, $('fm-list'));
+    }
+    wrap.addEventListener('pointerdown', function (ev) {
+      var c = ev.target.closest('.fm-card');
+      if (!c || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+      drag = { id: c.dataset.screen, card: c, sx: ev.clientX, sy: ev.clientY, ox: parseFloat(c.style.left), oy: parseFloat(c.style.top), moved: false, x: 0, y: 0 };
+    });
+    wrap.addEventListener('pointermove', function (ev) {
+      if (!drag) return;
+      var dx = ev.clientX - drag.sx, dy = ev.clientY - drag.sy;
+      if (!drag.moved) {
+        if (Math.hypot(dx, dy) < 6) return;
+        drag.moved = true; drag.card.classList.add('is-drag');
+        try { wrap.setPointerCapture(ev.pointerId); } catch (e) { /* ignorado */ }
+      }
+      drag.x = Math.max(0, Math.round(drag.ox + dx)); drag.y = Math.max(0, Math.round(drag.oy + dy));
+      drag.card.style.left = drag.x + 'px'; drag.card.style.top = drag.y + 'px';
+      var o = {}; o[drag.id] = { x: drag.x, y: drag.y };
+      layoutNow(o);
+    });
+    function end(cancel) {
+      if (!drag) return;
+      var d = drag; drag = null;
+      d.card.classList.remove('is-drag');
+      if (!d.moved) return;
+      suppress = true; setTimeout(function () { suppress = false; }, 0);
+      if (cancel) { renderFlowMap(); return; }
+      var p = state.project; p.flowPos = p.flowPos || {};
+      p.flowPos[d.id] = { x: d.x, y: d.y };
+      p.updatedAt = Date.now(); scheduleSave();
+      $('fm-reset').hidden = false;
+      layoutNow();
+      announce('Tela movida no mapa.');
+    }
+    wrap.addEventListener('pointerup', function () { end(false); });
+    wrap.addEventListener('pointercancel', function () { end(true); });
+    wrap.addEventListener('click', function (ev) {
+      if (suppress) return;
       var c = ev.target.closest('.fm-card');
       if (c) { $('dlg-flowmap').close(); switchScreen(c.dataset.screen); }
+    });
+    wrap.addEventListener('keydown', function (ev) {
+      var c = ev.target.closest && ev.target.closest('.fm-card');
+      if (!c || ev.key.indexOf('Arrow') !== 0 || !ev.altKey) return;
+      ev.preventDefault();
+      var step = ev.shiftKey ? 40 : 10, x = parseFloat(c.style.left), y = parseFloat(c.style.top);
+      if (ev.key === 'ArrowLeft') x -= step; else if (ev.key === 'ArrowRight') x += step; else if (ev.key === 'ArrowUp') y -= step; else y += step;
+      var p = state.project; p.flowPos = p.flowPos || {};
+      p.flowPos[c.dataset.screen] = { x: Math.max(0, Math.round(x)), y: Math.max(0, Math.round(y)) };
+      p.updatedAt = Date.now(); scheduleSave();
+      renderFlowMap();
+      var nc = wrap.querySelector('[data-screen="' + c.dataset.screen + '"]'); if (nc) nc.focus({ preventScroll: true });
+    });
+    $('fm-reset').addEventListener('click', function () {
+      var p = state.project; delete p.flowPos; p.updatedAt = Date.now(); scheduleSave();
+      renderFlowMap(); announce('Mapa reorganizado automaticamente.');
     });
   }
 
@@ -1570,7 +1639,7 @@
   }
 
   /* Layout do mapa (compartilhado pela tela, pelo PNG e pelo SVG). */
-  function flowLayout(p) {
+  function flowLayout(p, over) {
     var vp = E.VIEWPORTS[p.viewport] || E.VIEWPORTS.mobile;
     var edges = flowEdges(p), out = {};
     edges.forEach(function (e) { (out[e.from] = out[e.from] || []).push(e.to); });
@@ -1591,22 +1660,23 @@
     var CW = vp.w >= 900 ? 240 : 160, CH = Math.round(CW * vp.h / vp.w), GX = 110, GY = 64, PAD = 24, TOP = 48;
     var cols = 0, rows = 0;
     p.screens.forEach(function (sc) { cols = Math.max(cols, col[sc.id] + 1); rows = Math.max(rows, row[sc.id] + 1); });
-    var W = PAD * 2 + cols * CW + (cols - 1) * GX, H = TOP + PAD + rows * (CH + 30) + (rows - 1) * GY + 70;
-    var pos = {}, cards = p.screens.map(function (sc) {
-      var c = { sc: sc, x: PAD + col[sc.id] * (CW + GX), y: TOP + row[sc.id] * (CH + 30 + GY), w: CW, h: CH };
-      pos[sc.id] = c; return c;
+    var pos = {}, manual = p.flowPos || {}, W = 0, H = 0, cards = p.screens.map(function (sc) {
+      var m = (over && over[sc.id]) || manual[sc.id];
+      var c = { sc: sc, x: m ? m.x : PAD + col[sc.id] * (CW + GX), y: m ? m.y : TOP + row[sc.id] * (CH + 30 + GY), w: CW, h: CH, manual: !!m };
+      pos[sc.id] = c; W = Math.max(W, c.x + CW + PAD); H = Math.max(H, c.y + CH + 30 + 70); return c;
     });
     var backN = {}, byId = {}; p.screens.forEach(function (sc) { byId[sc.id] = sc; });
     var paths = edges.map(function (ed) {
-      var a = pos[ed.from], t = pos[ed.to], ca = col[ed.from], ct = col[ed.to], d, mx, my, tipX, tipY, ang;
-      if (ct > ca) {
+      var a = pos[ed.from], t = pos[ed.to], d, mx, my, tipX, tipY, ang;
+      var fwd = t.x >= a.x + a.w + 30, vert = !fwd && Math.abs((t.x + t.w / 2) - (a.x + a.w / 2)) < a.w * 0.9;
+      if (fwd) {
         var sx = a.x + a.w, sy = a.y + a.h / 2, ex = t.x - 2, ey = t.y + t.h / 2, k = (ex - sx) / 2;
         d = 'M' + sx + ',' + sy + ' C' + (sx + k) + ',' + sy + ' ' + (ex - k) + ',' + ey + ' ' + ex + ',' + ey; mx = (sx + ex) / 2; my = (sy + ey) / 2; tipX = ex; tipY = ey; ang = 0;
-      } else if (ct === ca) {
-        var down = row[ed.to] > row[ed.from], sx2 = a.x + a.w / 2, sy2 = down ? a.y + a.h : a.y, ey2 = down ? t.y - 2 : t.y + t.h + 2;
-        d = 'M' + sx2 + ',' + sy2 + ' L' + sx2 + ',' + ey2; mx = sx2; my = (sy2 + ey2) / 2; tipX = sx2; tipY = ey2; ang = down ? Math.PI / 2 : -Math.PI / 2;
+      } else if (vert) {
+        var down = t.y > a.y, sx2 = a.x + a.w / 2, sy2 = down ? a.y + a.h : a.y, ey2 = down ? t.y - 2 : t.y + t.h + 2, ex2 = t.x + t.w / 2;
+        d = 'M' + sx2 + ',' + sy2 + ' L' + ex2 + ',' + ey2; mx = (sx2 + ex2) / 2; my = (sy2 + ey2) / 2; tipX = ex2; tipY = ey2; ang = down ? Math.PI / 2 : -Math.PI / 2;
       } else {
-        var n = backN[ca + '>' + ct] = (backN[ca + '>' + ct] || 0) + 1, depth = 28 + 18 * n;
+        var bk = ed.from + '>' + ed.to, n = backN[bk] = (backN[bk] || 0) + 1, depth = 28 + 18 * n;
         var sx3 = a.x + a.w / 2, sy3 = a.y + a.h + 24, ex3 = t.x + t.w / 2, ey3 = t.y + t.h + 26, by = Math.max(sy3, ey3) + depth;
         d = 'M' + sx3 + ',' + sy3 + ' C' + sx3 + ',' + by + ' ' + ex3 + ',' + by + ' ' + ex3 + ',' + (ey3 + 2); mx = (sx3 + ex3) / 2; my = (sy3 + 3 * by + 3 * by + ey3) / 8; tipX = ex3; tipY = ey3 + 2; ang = -Math.PI / 2;
       }
@@ -1642,6 +1712,16 @@
       var nm = document.createElement('span'); nm.className = 'fm-name'; nm.textContent = c.sc.name; b.appendChild(nm);
       wrap.appendChild(b);
     });
+    drawFlowEdges(Lo, sv, list);
+    $('fm-help').textContent = Lo.edges.length ? 'Cada seta mostra para onde um bot\u00e3o leva (definido em Ao tocar, ir para). Clique numa tela para abri-la; arraste para reorganizar.' : 'Nenhum elemento aponta para outra tela ainda. Selecione um elemento e escolha uma tela em Ao tocar, ir para; ou crie um fluxo pronto em Nova tela.';
+    $('fm-export-png').disabled = $('fm-export-svg').disabled = false;
+    $('fm-reset').hidden = !(p.flowPos && Object.keys(p.flowPos).length);
+  }
+
+  function drawFlowEdges(Lo, sv, list) {
+    var NS = 'http://www.w3.org/2000/svg';
+    Array.prototype.slice.call(sv.children).forEach(function (n) { n.remove(); });
+    list.textContent = '';
     Lo.edges.forEach(function (e) {
       var path = document.createElementNS(NS, 'path');
       path.setAttribute('d', e.d); path.setAttribute('class', 'fm-edge');
@@ -1655,8 +1735,6 @@
       g.appendChild(rc); g.appendChild(tx); sv.appendChild(g);
       var li = document.createElement('li'); li.textContent = e.fromName + ' \u2192 ' + e.toName + ': ' + e.labels.join(', '); list.appendChild(li);
     });
-    $('fm-help').textContent = Lo.edges.length ? 'Cada seta mostra para onde um bot\u00e3o leva (definido em Ao tocar, ir para). Clique numa tela para abri-la.' : 'Nenhum elemento aponta para outra tela ainda. Selecione um elemento e escolha uma tela em Ao tocar, ir para; ou crie um fluxo pronto em Nova tela.';
-    $('fm-export-png').disabled = $('fm-export-svg').disabled = false;
   }
 
   function b64(str) { return btoa(unescape(encodeURIComponent(str))); }
@@ -1776,6 +1854,7 @@
     if (c !== 'ok') return;
     var i = p.screens.indexOf(sc);
     p.screens.splice(i, 1);
+    if (p.flowPos) delete p.flowPos[sc.id];
     p.screens.forEach(function (x) { x.elements.forEach(function (e) { if (e.go === sc.id) e.go = null; }); });
     var next = p.screens[Math.min(i, p.screens.length - 1)];
     p.activeScreenId = next.id;

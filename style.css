@@ -821,3 +821,6 @@ body.preview-on [data-action="preview"]{outline:2px solid var(--art-sel,#2563eb)
 .fm-list{margin:8px 0 0;padding-left:20px;font-size:.85rem;color:var(--text-muted);max-height:84px;overflow:auto}
 .fm-list:empty{display:none}
 .fm-head{fill:currentColor}
+.fm-card{touch-action:none;user-select:none}
+.fm-card.is-drag{opacity:.85;cursor:grabbing;z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+.fm-card{cursor:grab}
