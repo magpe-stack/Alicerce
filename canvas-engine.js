@@ -1071,6 +1071,7 @@
       if ('elbow' in patch && isBound(el)) { el.elbow = !!patch.elbow; if (!el.elbow) el.c = null; }
       if ('bend' in patch && isBound(el)) el.bend = typeof patch.bend === 'number' ? Math.max(0.05, Math.min(0.95, patch.bend)) : null;
       if ('ori' in patch && isBound(el)) el.ori = patch.ori === 'h' || patch.ori === 'v' ? patch.ori : null;
+      if (isBound(el)) { if ('fa' in patch) el.fa = sideOk(patch.fa); if ('ta' in patch) el.ta = sideOk(patch.ta); }
       if ('go' in patch) el.go = patch.go ? String(patch.go).slice(0, 100) : null;
       ['flipH', 'flipV'].forEach(function (k) {
         if (k in patch) { el[k] = !!patch[k]; styleChanged = true; }

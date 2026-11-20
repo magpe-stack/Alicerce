@@ -634,6 +634,9 @@
     fillGoSelect(el);
     $('insp-elbow-field').hidden = !(el.type === 'arrow' && el.from && el.to);
     $('insp-elbow').checked = !!el.elbow;
+    $('insp-anchor-field').hidden = $('insp-elbow-field').hidden;
+    set('insp-fa', el.fa || '');
+    set('insp-ta', el.ta || '');
     $('insp-route-field').hidden = $('insp-elbow-field').hidden || !el.elbow;
     set('insp-x', Math.round(el.x));
     set('insp-y', Math.round(el.y));
@@ -1102,6 +1105,13 @@
       inp.addEventListener('change', function () { syncInspector(true); });
     });
     $('insp-locked').addEventListener('change', function (ev) { engine.toggleLockSelected(ev.target.checked); });
+    ['fa', 'ta'].forEach(function (k) {
+      $('insp-' + k).addEventListener('change', function (ev) {
+        var el = single(); if (!el) return;
+        var patch = {}; patch[k] = ev.target.value || null;
+        engine.updateElement(el.id, patch, null);
+      });
+    });
     $('insp-route-reset').addEventListener('click', function () {
       var el = single(); if (!el) return;
       engine.updateElement(el.id, { bend: null, ori: null }, null);
