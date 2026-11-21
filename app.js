@@ -603,9 +603,37 @@
     switchScreen(state.preview.stack.pop());
     updatePreviewBar();
   }
+  function previewJump(i) {
+    var pv = state.preview;
+    if (!pv || i < 0 || i >= pv.stack.length) return;
+    var id = pv.stack[i];
+    pv.stack.length = i;
+    switchScreen(id);
+    updatePreviewBar();
+  }
   function updatePreviewBar() {
-    $('preview-back').disabled = !state.preview || !state.preview.stack.length;
+    var pv = state.preview, ol = $('preview-path');
+    $('preview-back').disabled = !pv || !pv.stack.length;
     $('preview-name').textContent = 'Testando: ' + activeScreen().name;
+    ol.textContent = '';
+    if (!pv) return;
+    var nameOf = function (id) { var sc = state.project.screens.filter(function (x) { return x.id === id; })[0]; return sc ? sc.name : '?'; };
+    var items = pv.stack.map(function (id, i) { return { id: id, i: i }; });
+    items.push({ id: state.project.activeScreenId, i: -1 });
+    items.forEach(function (it, k) {
+      var li = document.createElement('li');
+      if (it.i >= 0) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'pv-step'; b.dataset.action = 'preview-jump'; b.dataset.jump = it.i; b.textContent = nameOf(it.id);
+        b.setAttribute('aria-label', 'Voltar para a tela ' + nameOf(it.id) + ' (passo ' + (k + 1) + ')');
+        li.appendChild(b);
+      } else {
+        var cur = document.createElement('span'); cur.className = 'pv-cur'; cur.textContent = nameOf(it.id); cur.setAttribute('aria-current', 'step');
+        li.appendChild(cur);
+      }
+      ol.appendChild(li);
+    });
+    ol.scrollLeft = ol.scrollWidth;
   }
   /* durante o teste, só a prancheta, as abas e a barra de teste respondem */
   ['pointerdown', 'click', 'keydown', 'dragstart', 'contextmenu'].forEach(function (t) {
@@ -1574,6 +1602,8 @@
       }
       drag.x = Math.max(0, Math.round(drag.ox + dx)); drag.y = Math.max(0, Math.round(drag.oy + dy));
       drag.card.style.left = drag.x + 'px'; drag.card.style.top = drag.y + 'px';
+      var pb = wrap.querySelector('.fm-play[data-play="' + drag.id + '"]');
+      if (pb) { pb.style.left = (drag.x + drag.card.offsetWidth - 36) + 'px'; pb.style.top = (drag.y + 8) + 'px'; }
       var o = {}; o[drag.id] = { x: drag.x, y: drag.y };
       layoutNow(o);
     });
@@ -1594,6 +1624,8 @@
     wrap.addEventListener('pointerup', function () { end(false); });
     wrap.addEventListener('pointercancel', function () { end(true); });
     wrap.addEventListener('click', function (ev) {
+      var pl = ev.target.closest('.fm-play');
+      if (pl) { $('dlg-flowmap').close(); switchScreen(pl.dataset.play); setPreview(true); return; }
       if (suppress) return;
       var c = ev.target.closest('.fm-card');
       if (c) { $('dlg-flowmap').close(); switchScreen(c.dataset.screen); }
@@ -1711,9 +1743,15 @@
       var cv = E.renderScreenCanvas(c.sc, p.viewport, c.w / Lo.vp.w); cv.setAttribute('aria-hidden', 'true'); b.appendChild(cv);
       var nm = document.createElement('span'); nm.className = 'fm-name'; nm.textContent = c.sc.name; b.appendChild(nm);
       wrap.appendChild(b);
+      var pl = document.createElement('button');
+      pl.type = 'button'; pl.className = 'fm-play'; pl.dataset.play = c.sc.id;
+      pl.style.left = (c.x + c.w - 36) + 'px'; pl.style.top = (c.y + 8) + 'px';
+      pl.setAttribute('aria-label', 'Testar o prot\u00f3tipo a partir da tela ' + c.sc.name); pl.title = 'Testar a partir desta tela';
+      pl.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>';
+      wrap.appendChild(pl);
     });
     drawFlowEdges(Lo, sv, list);
-    $('fm-help').textContent = Lo.edges.length ? 'Cada seta mostra para onde um bot\u00e3o leva (definido em Ao tocar, ir para). Clique numa tela para abri-la; arraste para reorganizar.' : 'Nenhum elemento aponta para outra tela ainda. Selecione um elemento e escolha uma tela em Ao tocar, ir para; ou crie um fluxo pronto em Nova tela.';
+    $('fm-help').textContent = Lo.edges.length ? 'Cada seta mostra para onde um bot\u00e3o leva (definido em Ao tocar, ir para). Clique numa tela para abri-la; arraste para reorganizar; use ▶ para testar a partir dela.' : 'Nenhum elemento aponta para outra tela ainda. Selecione um elemento e escolha uma tela em Ao tocar, ir para; ou crie um fluxo pronto em Nova tela.';
     $('fm-export-png').disabled = $('fm-export-svg').disabled = false;
     $('fm-reset').hidden = !(p.flowPos && Object.keys(p.flowPos).length);
   }
@@ -2789,6 +2827,7 @@
     'preview': function () { setPreview(!state.preview); },
     'preview-exit': function () { setPreview(false); },
     'preview-back': previewBack,
+    'preview-jump': function (btn) { previewJump(Number(btn.dataset.jump)); },
     'rulers': function () { setRulers(!document.body.classList.contains('rulers-on'), true); },
     'screen-delete': deleteScreen
   };
