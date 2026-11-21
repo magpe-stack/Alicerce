@@ -438,6 +438,7 @@
   function switchScreen(id) {
     var p = state.project;
     if (!p.screens.some(function (s) { return s.id === id; })) return;
+    if (state.preview && !state.preview.busy && id !== p.activeScreenId) state.preview.stack.push(p.activeScreenId);
     p.activeScreenId = id;
     engine.setScreen(activeScreen(), p.viewport);
     renderTabs();
@@ -595,12 +596,13 @@
   function previewGo(id) {
     if (!state.preview || !state.project.screens.some(function (x) { return x.id === id; })) return;
     state.preview.stack.push(state.project.activeScreenId);
-    switchScreen(id);
+    state.preview.busy = true; switchScreen(id); state.preview.busy = false;
     updatePreviewBar();
   }
   function previewBack() {
     if (!state.preview || !state.preview.stack.length) return;
-    switchScreen(state.preview.stack.pop());
+    var back = state.preview.stack.pop();
+    state.preview.busy = true; switchScreen(back); state.preview.busy = false;
     updatePreviewBar();
   }
   function previewJump(i) {
@@ -608,7 +610,7 @@
     if (!pv || i < 0 || i >= pv.stack.length) return;
     var id = pv.stack[i];
     pv.stack.length = i;
-    switchScreen(id);
+    pv.busy = true; switchScreen(id); pv.busy = false;
     updatePreviewBar();
   }
   function updatePreviewBar() {
